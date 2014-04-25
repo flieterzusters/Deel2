@@ -1,0 +1,3152 @@
+From 009b080b8edfe13040bb0827230ffe6092bdd97d Mon Sep 17 00:00:00 2001
+From: Victor Le Pochat <victorlepochat@gmail.com>
+Date: Sat, 8 Mar 2014 14:31:33 +0100
+Subject: [PATCH] First 'real' edits. - Documented, implemented getters,
+ setters, checkers for the various   variables of the worm. - Changes to
+ Facade to handle exceptions (although not sure if this is   the correct way)
+ - Includes 'Notes.txt' for collection and exchange of notes, remarks  
+ questions, ... (also for the consultancy sessions) Also see TODOs in   the
+ body of the class. - Deleted src-provided (gives Eclipse errors).
+
+Will contain errors. :)
+---
+ Notes.txt                                          |  14 +
+ src-provided/worms/Worms.java                      |  28 --
+ src-provided/worms/gui/ErrorScreen.java            |  40 --
+ src-provided/worms/gui/GUIConstants.java           |  64 ---
+ src-provided/worms/gui/GUIOptions.java             |   6 -
+ src-provided/worms/gui/GUIUtils.java               |  53 ---
+ src-provided/worms/gui/GameState.java              | 102 -----
+ src-provided/worms/gui/Screen.java                 | 168 --------
+ src-provided/worms/gui/WormsGUI.java               | 126 ------
+ src-provided/worms/gui/game/PlayGameScreen.java    | 451 ---------------------
+ .../worms/gui/game/PlayGameScreenDebugPainter.java |  95 -----
+ .../worms/gui/game/PlayGameScreenPainter.java      | 256 ------------
+ src-provided/worms/gui/game/commands/Command.java  |  68 ----
+ .../worms/gui/game/commands/CommandProcessor.java  |  36 --
+ .../gui/game/commands/InstantaneousCommand.java    |  19 -
+ src-provided/worms/gui/game/commands/Jump.java     |  70 ----
+ src-provided/worms/gui/game/commands/Move.java     |  70 ----
+ src-provided/worms/gui/game/commands/Rename.java   |  33 --
+ src-provided/worms/gui/game/commands/Resize.java   |  39 --
+ src-provided/worms/gui/game/commands/Turn.java     |  34 --
+ .../worms/gui/game/sprites/ImageSprite.java        | 130 ------
+ src-provided/worms/gui/game/sprites/Sprite.java    |  37 --
+ .../worms/gui/game/sprites/WormSprite.java         |  53 ---
+ .../worms/gui/menu/AbstractMenuScreen.java         | 126 ------
+ src-provided/worms/gui/menu/MainMenuScreen.java    |  69 ----
+ src-provided/worms/model/Facade.java               |  10 -
+ src-provided/worms/model/IFacade.java              | 164 --------
+ src-provided/worms/model/ModelException.java       |  21 -
+ src-provided/worms/model/Worm.java                 |   5 -
+ src-provided/worms/util/Util.java                  |  50 ---
+ src/worms/model/Facade.java                        |  27 +-
+ src/worms/model/Worm.java                          | 333 +++++++++++++--
+ 32 files changed, 335 insertions(+), 2462 deletions(-)
+ create mode 100644 Notes.txt
+ delete mode 100644 src-provided/worms/Worms.java
+ delete mode 100644 src-provided/worms/gui/ErrorScreen.java
+ delete mode 100644 src-provided/worms/gui/GUIConstants.java
+ delete mode 100644 src-provided/worms/gui/GUIOptions.java
+ delete mode 100644 src-provided/worms/gui/GUIUtils.java
+ delete mode 100644 src-provided/worms/gui/GameState.java
+ delete mode 100644 src-provided/worms/gui/Screen.java
+ delete mode 100644 src-provided/worms/gui/WormsGUI.java
+ delete mode 100644 src-provided/worms/gui/game/PlayGameScreen.java
+ delete mode 100644 src-provided/worms/gui/game/PlayGameScreenDebugPainter.java
+ delete mode 100644 src-provided/worms/gui/game/PlayGameScreenPainter.java
+ delete mode 100644 src-provided/worms/gui/game/commands/Command.java
+ delete mode 100644 src-provided/worms/gui/game/commands/CommandProcessor.java
+ delete mode 100644 src-provided/worms/gui/game/commands/InstantaneousCommand.java
+ delete mode 100644 src-provided/worms/gui/game/commands/Jump.java
+ delete mode 100644 src-provided/worms/gui/game/commands/Move.java
+ delete mode 100644 src-provided/worms/gui/game/commands/Rename.java
+ delete mode 100644 src-provided/worms/gui/game/commands/Resize.java
+ delete mode 100644 src-provided/worms/gui/game/commands/Turn.java
+ delete mode 100644 src-provided/worms/gui/game/sprites/ImageSprite.java
+ delete mode 100644 src-provided/worms/gui/game/sprites/Sprite.java
+ delete mode 100644 src-provided/worms/gui/game/sprites/WormSprite.java
+ delete mode 100644 src-provided/worms/gui/menu/AbstractMenuScreen.java
+ delete mode 100644 src-provided/worms/gui/menu/MainMenuScreen.java
+ delete mode 100644 src-provided/worms/model/Facade.java
+ delete mode 100644 src-provided/worms/model/IFacade.java
+ delete mode 100644 src-provided/worms/model/ModelException.java
+ delete mode 100644 src-provided/worms/model/Worm.java
+ delete mode 100644 src-provided/worms/util/Util.java
+
+diff --git a/Notes.txt b/Notes.txt
+new file mode 100644
+index 0000000..90ff660
+--- /dev/null
++++ b/Notes.txt
+@@ -0,0 +1,14 @@
++- aparte klasse Position voorzien die x- en y-coördinaat bevat? (zou een @Value-klasse zijn)
++    -> extra klasse is extra 'kost', maar kan minder redundantie betekenen? (zie ook onderstaande)
++- isValidX/Y of algemenere isValidCoordinate ? Hangt ook samen met keuze voor Position-klasse
++    -> consistentie van checker per variabele tegenover redundantie
++- algemeen: 'futureproofen' of niet? Vaak wordt er vermeld dat 'in future' bepaalde dingen veranderen > nu al implementeren? In de les is gezegd "doe niet meer dan nodig, breid pas later uit", dus niet doen?
++    -> maakt bv. verschil tussen isValidRadius en canHaveAsRadius: eerste betekent vaste radius voor elke worm (zoals nu is), tweede betekent controleert of radius geldig voor een welbepaalde worm (zoals later zal zijn)
++    -> ook verschil tussen static of niet
++- eigen Exceptions schrijven of niet? nu vooral IllegalArgument gebruikt, bv. IllegalRadiusException beter?
++    -> nota uit les: "eigen exception enkel als je veel informatie daarover nodig hebt (anders de ingebouwde exceptions gebruiken)"
++- setActionPoints. voor 'randgevallen': recursief of niet? Concreet: bv. als AP < 0 : setActionPoints(0) (dus geldig geval) of this.actionPoints = 0 ?
++
++TODO:
++- class invariants
++- isValid = static; canHaveAs = instance
+diff --git a/src-provided/worms/Worms.java b/src-provided/worms/Worms.java
+deleted file mode 100644
+index d861e25..0000000
+--- a/src-provided/worms/Worms.java
++++ /dev/null
+@@ -1,28 +0,0 @@
+-package worms;
+-
+-import worms.gui.GUIOptions;
+-import worms.gui.WormsGUI;
+-import worms.model.Facade;
+-
+-public class Worms {
+-
+-	public static void main(String[] args) {
+-		new WormsGUI(new Facade(), parseOptions(args)).start();
+-	}
+-
+-	private static GUIOptions parseOptions(String[] args) {
+-		GUIOptions options = new GUIOptions();
+-
+-		for (int i = 0; i < args.length; i++) {
+-			String arg = args[i];
+-			if ("-window".equals(arg)) {
+-				options.disableFullScreen = true;
+-			} else if ("-seed".equals(arg)) {
+-				long randomSeed = Long.parseLong(args[++i]);
+-				options.randomSeed = randomSeed;
+-			}
+-		}
+-
+-		return options;
+-	}
+-}
+diff --git a/src-provided/worms/gui/ErrorScreen.java b/src-provided/worms/gui/ErrorScreen.java
+deleted file mode 100644
+index dd75a3e..0000000
+--- a/src-provided/worms/gui/ErrorScreen.java
++++ /dev/null
+@@ -1,40 +0,0 @@
+-package worms.gui;
+-
+-import java.awt.Color;
+-import java.awt.Graphics2D;
+-import java.awt.event.KeyEvent;
+-
+-public class ErrorScreen extends Screen {
+-
+-	private final String message;
+-
+-	public ErrorScreen(WormsGUI gui, String message) {
+-		super(gui);
+-		this.message = message;
+-	}
+-	
+-	@Override
+-	protected void screenStarted() {
+-	}
+-
+-	@Override
+-	protected InputMode createDefaultInputMode() {
+-		return new InputMode() {
+-			@Override
+-			public void keyReleased(KeyEvent e) {
+-				if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+-					getGUI().exit();
+-				}
+-			}
+-		};
+-	}
+-
+-	@Override
+-	protected void paintScreen(Graphics2D g) {
+-		g.setColor(Color.RED);
+-		GUIUtils.drawCenteredString((Graphics2D) g, "An error has occurred",
+-				getScreenWidth(), 20);
+-		GUIUtils.drawCenteredString((Graphics2D) g, message, getScreenWidth(), 50);
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/GUIConstants.java b/src-provided/worms/gui/GUIConstants.java
+deleted file mode 100644
+index 5f7a340..0000000
+--- a/src-provided/worms/gui/GUIConstants.java
++++ /dev/null
+@@ -1,64 +0,0 @@
+-package worms.gui;
+-
+-public final class GUIConstants {
+-
+-	/**
+-	 * Default width of the window, when not running in full-screen, in pixels
+-	 */
+-	public static final int DEFAULT_WINDOW_WIDTH = 1024;
+-
+-	/**
+-	 * Default height of the window, when not running in full-screen, in pixels
+-	 */
+-	public static final int DEFAULT_WINDOW_HEIGHT = 768;
+-
+-	/**
+-	 * Framerate at which to re-draw the screen, in frames per (real) second
+-	 */
+-	public static final int FRAMERATE = 30; // fps
+-
+-	/**
+-	 * Time (in worm-seconds) that elapses in 1 real second
+-	 */
+-	public static final double TIME_SCALE = 2;
+-
+-	/**
+-	 * Scale at which the game is drawn to the screen (in pixels per worm-meter)
+-	 */
+-	public static double WORLD_SCALE = 45;
+-
+-	/**
+-	 * Minimal angle to turn when pressing the 'turn' key a single time
+-	 */
+-	public static final double MIN_TURN_ANGLE = Math.PI / 60.0;
+-
+-	/**
+-	 * Angle that is turned per (real) second while keeping the 'turn' keys
+-	 * pressed.
+-	 */
+-	public static final double ANGLE_TURNED_PER_SECOND = Math.PI;
+-
+-	/**
+-	 * Number of steps to take when pressing the 'move' key a single time
+-	 */
+-	public static final int DEFAULT_NB_STEPS = 1;
+-
+-	/**
+-	 * Duration of the move animation for a single step (in worm-seconds)
+-	 */
+-	public static final double MOVE_DURATION = 1;
+-
+-	/**
+-	 * Fraction by which to expand or shrink a worm's radius when resizing
+-	 */
+-	public static final double RESIZE_FACTOR = 0.1;
+-
+-	/**
+-	 * Time to display messages on the screen (in real seconds)
+-	 */
+-	public static final double MESSAGE_DISPLAY_TIME = 1.0;
+-
+-	/* disable instantiations */
+-	private GUIConstants() {
+-	}
+-}
+diff --git a/src-provided/worms/gui/GUIOptions.java b/src-provided/worms/gui/GUIOptions.java
+deleted file mode 100644
+index 9b96e63..0000000
+--- a/src-provided/worms/gui/GUIOptions.java
++++ /dev/null
+@@ -1,6 +0,0 @@
+-package worms.gui;
+-
+-public class GUIOptions {
+-	public boolean disableFullScreen = false;
+-	public long randomSeed = 3;
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/GUIUtils.java b/src-provided/worms/gui/GUIUtils.java
+deleted file mode 100644
+index 2278f42..0000000
+--- a/src-provided/worms/gui/GUIUtils.java
++++ /dev/null
+@@ -1,53 +0,0 @@
+-package worms.gui;
+-
+-import java.awt.Graphics2D;
+-import java.awt.geom.Ellipse2D;
+-import java.awt.geom.Rectangle2D;
+-
+-import worms.util.Util;
+-
+-public class GUIUtils {
+-
+-	public static double meterToPixels(double m) {
+-		return m * GUIConstants.WORLD_SCALE;
+-	}
+-
+-	public static double pixelToMeter(double p) {
+-		return p / GUIConstants.WORLD_SCALE;
+-	}
+-
+-	public static Ellipse2D.Double circleAt(double centerX, double centerY,
+-			double r) {
+-		return new Ellipse2D.Double(centerX - r, centerY - r, 2 * r, 2 * r);
+-	}
+-
+-	public static void drawCenteredString(Graphics2D g2d, String text,
+-			double width, double y) {
+-		Rectangle2D bounds = g2d.getFontMetrics().getStringBounds(text, g2d);
+-		g2d.drawString(text, (int) (width / 2 - bounds.getCenterX()), (int) y);
+-	}
+-
+-	public static double restrictDirection(double direction) {
+-		return restrictAngle(direction, 0);
+-	}
+-
+-	/**
+-	 * Restrict angle to [min, min+2pi)
+-	 */
+-	public static double restrictAngle(double angle, double min) {
+-		while (angle < min) {
+-			angle += 2 * Math.PI;
+-		}
+-		double max = min + 2 * Math.PI;
+-		while (Util.fuzzyGreaterThanOrEqualTo(angle, max)) {
+-			angle -= 2 * Math.PI;
+-		}
+-		return angle;
+-	}
+-
+-	public static double distance(double x1, double y1, double x2, double y2) {
+-		double dx = x1 - x2;
+-		double dy = y1 - y2;
+-		return Math.sqrt(dx * dx + dy * dy);
+-	}
+-}
+diff --git a/src-provided/worms/gui/GameState.java b/src-provided/worms/gui/GameState.java
+deleted file mode 100644
+index 7ae0f67..0000000
+--- a/src-provided/worms/gui/GameState.java
++++ /dev/null
+@@ -1,102 +0,0 @@
+-package worms.gui;
+-
+-import java.util.ArrayList;
+-import java.util.Arrays;
+-import java.util.Collection;
+-import java.util.Collections;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Random;
+-
+-import worms.gui.game.commands.Command;
+-import worms.gui.game.commands.CommandProcessor;
+-import worms.model.IFacade;
+-import worms.model.Worm;
+-
+-public class GameState {
+-
+-	private final Random random;
+-	private final IFacade facade;
+-	private final Collection<Worm> worms = new ArrayList<Worm>();
+-	private final CommandProcessor commandProcessor = new CommandProcessor();
+-
+-	private Iterator<Worm> selection;
+-	private Worm selectedWorm;
+-
+-	private final int width;
+-	private final int height;
+-
+-	public GameState(IFacade facade, long randomSeed, int width, int height) {
+-		this.random = new Random(randomSeed);
+-		this.facade = facade;
+-		this.width = width;
+-		this.height = height;
+-	}
+-
+-	private List<String> wormNames = Arrays.asList("Shari", "Shannon",
+-			"Willard", "Jodi", "Santos", "Ross", "Cora", "Jacob", "Homer",
+-			"Kara");
+-	private int nameIndex = 0;
+-
+-	private void createRandomWorms() {
+-		for (int i = 0; i < wormNames.size(); i++) {
+-			String name = wormNames.get(nameIndex++);
+-			double radius = 0.25 + random.nextDouble() / 4;
+-			double worldWidth = GUIUtils.pixelToMeter(width);
+-			double worldHeight = GUIUtils.pixelToMeter(height);
+-
+-			double x = -worldWidth / 2 + radius + random.nextDouble()
+-					* (worldWidth - 2 * radius);
+-			double y = -worldHeight / 2 + radius + random.nextDouble()
+-					* (worldHeight - 2 * radius);
+-			double direction = random.nextDouble() * 2 * Math.PI;
+-			Worm worm = facade.createWorm(x, y, direction, radius, name);
+-			if (worm != null) {
+-				worms.add(worm);
+-			} else {
+-				throw new NullPointerException("Created worm must not be null");
+-			}
+-		}
+-	}
+-
+-	public void startGame() {
+-		createRandomWorms();
+-		selectNextWorm();
+-	}
+-
+-	public Worm getSelectedWorm() {
+-		return selectedWorm;
+-	}
+-
+-	public void selectNextWorm() {
+-		if (selection == null || !selection.hasNext()) {
+-			selection = worms.iterator();
+-		}
+-		if (selection.hasNext()) {
+-			selectWorm(selection.next());
+-		} else {
+-			selectWorm(null);
+-		}
+-	}
+-
+-	public void selectWorm(Worm worm) {
+-		selectedWorm = worm;
+-	}
+-
+-	public IFacade getFacade() {
+-		return facade;
+-	}
+-
+-	public Collection<Worm> getWorms() {
+-		return Collections.unmodifiableCollection(worms);
+-	}
+-
+-	public void evolve(double timeDelta) {
+-		commandProcessor.advanceCommandQueue(timeDelta);
+-	}
+-
+-	public void enqueueCommand(Command cmd) {
+-		commandProcessor.enqueueCommand(cmd);
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/Screen.java b/src-provided/worms/gui/Screen.java
+deleted file mode 100644
+index 8117098..0000000
+--- a/src-provided/worms/gui/Screen.java
++++ /dev/null
+@@ -1,168 +0,0 @@
+-package worms.gui;
+-
+-import java.awt.Color;
+-import java.awt.Component;
+-import java.awt.Graphics;
+-import java.awt.Graphics2D;
+-import java.awt.RenderingHints;
+-import java.awt.event.KeyEvent;
+-import java.awt.event.KeyListener;
+-import java.awt.event.MouseEvent;
+-import java.awt.event.MouseListener;
+-import java.awt.event.MouseMotionListener;
+-
+-import javax.swing.JPanel;
+-
+-public abstract class Screen {
+-
+-	protected class InputMode implements KeyListener, MouseListener,
+-			MouseMotionListener {
+-
+-		public void paintOverlay(Graphics2D g) {
+-		}
+-
+-		@Override
+-		public void keyPressed(KeyEvent e) {
+-		}
+-
+-		@Override
+-		public void keyReleased(KeyEvent e) {
+-		}
+-
+-		@Override
+-		public void keyTyped(KeyEvent e) {
+-		}
+-
+-		@Override
+-		public void mouseClicked(MouseEvent e) {
+-
+-		}
+-
+-		@Override
+-		public void mouseEntered(MouseEvent e) {
+-
+-		}
+-
+-		@Override
+-		public void mouseExited(MouseEvent e) {
+-
+-		}
+-
+-		@Override
+-		public void mousePressed(MouseEvent e) {
+-
+-		}
+-
+-		@Override
+-		public void mouseReleased(MouseEvent e) {
+-
+-		}
+-
+-		@Override
+-		public void mouseDragged(MouseEvent e) {
+-		}
+-
+-		@Override
+-		public void mouseMoved(MouseEvent e) {
+-		}
+-	}
+-
+-	private final WormsGUI gui;
+-	private final Component contents;
+-
+-	protected Screen(WormsGUI gui) {
+-		this.gui = gui;
+-		this.contents = createContents();
+-		contents.setFocusable(true);
+-		contents.setFocusTraversalKeysEnabled(false);
+-		switchInputMode(createDefaultInputMode());
+-	}
+-
+-	public Component getPanel() {
+-		return contents;
+-	}
+-
+-	protected Component createContents() {
+-		@SuppressWarnings("serial")
+-		Component result = new JPanel() {
+-			@Override
+-			public void paint(Graphics g) {
+-				super.paint(g);
+-				Graphics2D graphics = (Graphics2D) g;
+-				graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+-						RenderingHints.VALUE_ANTIALIAS_ON);
+-
+-				Screen.this.paintScreen(graphics);
+-
+-				getCurrentInputMode().paintOverlay(graphics);
+-			}
+-		};
+-		result.setBackground(Color.BLACK);
+-		return result;
+-	}
+-
+-	public WormsGUI getGUI() {
+-		return gui;
+-	}
+-
+-	protected abstract InputMode createDefaultInputMode();
+-
+-	private InputMode currentInputMode;
+-
+-	protected InputMode getCurrentInputMode() {
+-		return currentInputMode;
+-	}
+-
+-	protected void switchInputMode(InputMode newMode) {
+-		if (currentInputMode != null) {
+-			contents.removeKeyListener(currentInputMode);
+-			contents.removeMouseListener(currentInputMode);
+-			contents.removeMouseMotionListener(currentInputMode);
+-		}
+-		currentInputMode = newMode;
+-		if (newMode != null) {
+-			contents.addKeyListener(newMode);
+-			contents.addMouseListener(newMode);
+-			contents.addMouseMotionListener(newMode);
+-		}
+-	}
+-
+-	protected void paintScreen(Graphics2D g) {
+-	}
+-
+-	public final void startScreen() {
+-		getPanel().requestFocusInWindow();
+-		screenStarted();
+-	}
+-	
+-	protected abstract void screenStarted();
+-
+-	public int getScreenHeight() {
+-		return getPanel().getHeight();
+-	}
+-
+-	public int getScreenWidth() {
+-		return getPanel().getWidth();
+-	}
+-
+-	public void repaint() {
+-		getPanel().repaint();
+-	}
+-
+-	public double getScreenX(double x) {
+-		return getScreenWidth() / 2.0 + GUIUtils.meterToPixels(x);
+-	}
+-
+-	public double getLogicalX(double screenX) {
+-		return GUIUtils.pixelToMeter(screenX - getScreenWidth() / 2.0);
+-	}
+-
+-	public double getScreenY(double y) {
+-		return getScreenHeight() / 2.0 - GUIUtils.meterToPixels(y);
+-	}
+-
+-	public double getLogicalY(double screenY) {
+-		return GUIUtils.pixelToMeter(getScreenHeight() / 2.0 - screenY);
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/WormsGUI.java b/src-provided/worms/gui/WormsGUI.java
+deleted file mode 100644
+index 3bbbfc0..0000000
+--- a/src-provided/worms/gui/WormsGUI.java
++++ /dev/null
+@@ -1,126 +0,0 @@
+-package worms.gui;
+-
+-import java.awt.BorderLayout;
+-import java.awt.Color;
+-import java.awt.Dimension;
+-import java.awt.GraphicsDevice;
+-import java.awt.GraphicsEnvironment;
+-import java.awt.event.WindowAdapter;
+-import java.awt.event.WindowEvent;
+-
+-import javax.swing.JFrame;
+-import javax.swing.JPanel;
+-
+-import worms.gui.menu.MainMenuScreen;
+-import worms.model.IFacade;
+-
+-public class WormsGUI {
+-
+-	private JFrame window;
+-	private JPanel screenPanel;
+-
+-	private Screen currentScreen = null;
+-
+-	private final GUIOptions options;
+-	private final IFacade facade;
+-
+-	public WormsGUI(IFacade facade, GUIOptions options) {
+-		this.facade = facade;
+-		this.options = options;
+-	}
+-
+-	public void switchToScreen(Screen newScreen) {
+-		if (currentScreen != null) {
+-			screenPanel.remove(currentScreen.getPanel());
+-		}
+-		screenPanel.add(newScreen.getPanel(), BorderLayout.CENTER);
+-		screenPanel.validate();
+-		currentScreen = newScreen;
+-		newScreen.startScreen();
+-	}
+-
+-	public void start() {
+-		try {
+-			initializeGUI();
+-			gotoMainMenu();
+-		} catch (Exception e) {
+-			e.printStackTrace();
+-			showError(e.getMessage());
+-		}
+-	}
+-
+-	private void gotoMainMenu() {
+-		MainMenuScreen menuScreen = new MainMenuScreen(this);
+-		switchToScreen(menuScreen);
+-	}
+-
+-	public void exit() {
+-		window.dispose();
+-		System.exit(0);
+-	}
+-
+-	private void initializeGUI() {
+-		GraphicsEnvironment env = GraphicsEnvironment
+-				.getLocalGraphicsEnvironment();
+-		if (env.isHeadlessInstance()) {
+-			System.out.println("Graphics not supported");
+-			System.exit(0);
+-		}
+-
+-		this.window = new JFrame("Worms");
+-		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+-		window.addWindowListener(new WindowAdapter() {
+-			public void windowClosing(WindowEvent e) {
+-				exit();
+-			};
+-		});
+-		window.setFocusTraversalKeysEnabled(false);
+-
+-		this.screenPanel = new JPanel();
+-		screenPanel.setLayout(new BorderLayout());
+-		screenPanel.setBackground(Color.WHITE);
+-		window.getContentPane().add(screenPanel);
+-
+-		window.setFocusable(false);
+-
+-		GraphicsDevice device = env.getDefaultScreenDevice();
+-		if (device.isFullScreenSupported() && !options.disableFullScreen) {
+-			window.setUndecorated(true);
+-			window.pack();
+-			device.setFullScreenWindow(window);
+-		} else {
+-			window.setUndecorated(false);
+-			screenPanel.setPreferredSize(new Dimension(
+-					GUIConstants.DEFAULT_WINDOW_WIDTH,
+-					GUIConstants.DEFAULT_WINDOW_HEIGHT));
+-			window.pack();
+-		}
+-
+-		window.setVisible(true);
+-	}
+-
+-	public void showError(String message) {
+-		if (message == null) {
+-			message = "(Unknown error)";
+-		}
+-		ErrorScreen errorScreen = new ErrorScreen(this, message);
+-		switchToScreen(errorScreen);
+-	}
+-
+-	public IFacade getFacade() {
+-		return facade;
+-	}
+-
+-	public GUIOptions getOptions() {
+-		return options;
+-	}
+-
+-	public int getWidth() {
+-		return currentScreen.getScreenWidth();
+-	}
+-	
+-	public int getHeight() {
+-		return currentScreen.getScreenHeight();
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/game/PlayGameScreen.java b/src-provided/worms/gui/game/PlayGameScreen.java
+deleted file mode 100644
+index 03465dc..0000000
+--- a/src-provided/worms/gui/game/PlayGameScreen.java
++++ /dev/null
+@@ -1,451 +0,0 @@
+-package worms.gui.game;
+-
+-import java.awt.Graphics2D;
+-import java.awt.Point;
+-import java.awt.event.ActionEvent;
+-import java.awt.event.ActionListener;
+-import java.awt.event.KeyEvent;
+-import java.awt.event.MouseEvent;
+-import java.util.HashSet;
+-import java.util.LinkedList;
+-import java.util.Set;
+-import java.util.concurrent.atomic.AtomicLong;
+-
+-import javax.swing.Timer;
+-
+-import worms.gui.GUIConstants;
+-import worms.gui.GUIUtils;
+-import worms.gui.GameState;
+-import worms.gui.Screen;
+-import worms.gui.WormsGUI;
+-import worms.gui.game.commands.Jump;
+-import worms.gui.game.commands.Move;
+-import worms.gui.game.commands.Rename;
+-import worms.gui.game.commands.Resize;
+-import worms.gui.game.commands.Turn;
+-import worms.gui.game.sprites.Sprite;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.IFacade;
+-import worms.model.Worm;
+-
+-public class PlayGameScreen extends Screen {
+-
+-	private class DefaultInputMode extends InputMode {
+-
+-		@Override
+-		public void mouseClicked(MouseEvent e) {
+-			Point point = e.getPoint();
+-			for (WormSprite sprite : getSpritesOfType(WormSprite.class)) {
+-				Worm worm = sprite.getWorm();
+-				double[] xy = sprite.getCenterLocation();
+-				double radius = GUIUtils.meterToPixels(getFacade().getRadius(
+-						worm));
+-				if (GUIUtils.distance(xy[0], xy[1], point.getX(), point.getY()) <= radius) {
+-					getGameState().selectWorm(worm);
+-					return;
+-				}
+-			}
+-		}
+-
+-		@Override
+-		public void mouseDragged(MouseEvent e) {
+-			switchInputMode(new TurningMode());
+-			getCurrentInputMode().mouseDragged(e);
+-		}
+-
+-		@Override
+-		public void keyPressed(KeyEvent e) {
+-			switch (e.getKeyCode()) {
+-			case KeyEvent.VK_LEFT:
+-			case KeyEvent.VK_RIGHT:
+-				switchInputMode(new TurningMode());
+-				getCurrentInputMode().keyPressed(e);
+-				break;
+-			case KeyEvent.VK_UP:
+-				move(GUIConstants.DEFAULT_NB_STEPS);
+-				break;
+-			}
+-		}
+-
+-		@Override
+-		public void keyReleased(KeyEvent e) {
+-			switch (e.getKeyCode()) {
+-			case KeyEvent.VK_ESCAPE:
+-				getGUI().exit();
+-				break;
+-			case KeyEvent.VK_TAB:
+-				getGameState().selectNextWorm();
+-				break;
+-			case KeyEvent.VK_J:
+-				jump();
+-				break;
+-			case KeyEvent.VK_N:
+-				switchInputMode(new EnteringNameMode());
+-				break;
+-			case KeyEvent.VK_PLUS:
+-			case KeyEvent.VK_ADD:
+-				resizeWorm(true);
+-				break;
+-			case KeyEvent.VK_MINUS:
+-			case KeyEvent.VK_SUBTRACT:
+-				resizeWorm(false);
+-				break;
+-			default:
+-				// System.out.println("Unhandled key: " + e);
+-			}
+-		}
+-
+-	}
+-
+-	private class EnteringNameMode extends InputMode {
+-		private String enteredName = "";
+-
+-		@Override
+-		public void keyReleased(KeyEvent e) {
+-			if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+-				changeName(enteredName);
+-				switchInputMode(new DefaultInputMode());
+-			} else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+-				switchInputMode(new DefaultInputMode());
+-			}
+-		}
+-
+-		@Override
+-		public void keyTyped(KeyEvent e) {
+-			if (e.getKeyChar() == '\b') {
+-				enteredName = enteredName.substring(0,
+-						Math.max(0, enteredName.length() - 1));
+-			} else if (!Character.isISOControl(e.getKeyChar())
+-					&& e.getKeyChar() != KeyEvent.CHAR_UNDEFINED) {
+-				enteredName += e.getKeyChar();
+-			}
+-			repaint();
+-		}
+-
+-		@Override
+-		public void paintOverlay(Graphics2D g) {
+-			super.paintOverlay(g);
+-			painter.paintNameEntry(g, enteredName);
+-		}
+-
+-	}
+-
+-	private class TurningMode extends InputMode {
+-		private double angle = 0;
+-
+-		private long pressedSince = 0; // 0 if not turning
+-		private boolean clockwise;
+-
+-		private void startTurning(boolean clockwise) {
+-			if (!isTurning()) {
+-				pressedSince = System.currentTimeMillis();
+-				this.clockwise = clockwise;
+-			}
+-		}
+-
+-		private void stopTurning() {
+-			angle = getCurrentAngle();
+-			pressedSince = 0;
+-		}
+-
+-		private boolean isTurning() {
+-			return pressedSince != 0;
+-		}
+-
+-		@Override
+-		public void mouseDragged(MouseEvent e) {
+-			double[] wormXY = getWormSprite(getSelectedWorm())
+-					.getCenterLocation();
+-			double currentOrientation = getFacade().getOrientation(
+-					getSelectedWorm());
+-			this.angle = Math.PI
+-					- currentOrientation
+-					+ Math.atan2((e.getY() - wormXY[1]), (wormXY[0] - e.getX()));
+-		}
+-
+-		@Override
+-		public void mouseReleased(MouseEvent e) {
+-			finishTurn();
+-		}
+-
+-		private void finishTurn() {
+-			if (angle != 0) {
+-				turn(angle);
+-				switchInputMode(new DefaultInputMode());
+-			}
+-		}
+-
+-		@Override
+-		public void keyReleased(KeyEvent e) {
+-			switch (e.getKeyCode()) {
+-			case KeyEvent.VK_ESCAPE:
+-				switchInputMode(new DefaultInputMode());
+-				break;
+-			case KeyEvent.VK_ENTER:
+-				finishTurn();
+-				break;
+-			case KeyEvent.VK_LEFT: // no-break
+-			case KeyEvent.VK_RIGHT:
+-				stopTurning();
+-				break;
+-			}
+-		}
+-
+-		private double getCurrentAngle() {
+-			double delta = 0;
+-			if (isTurning()) {
+-				long now = System.currentTimeMillis();
+-				delta = Math.max(GUIConstants.MIN_TURN_ANGLE,
+-						(now - pressedSince) / 1000.0
+-								* GUIConstants.ANGLE_TURNED_PER_SECOND);
+-				if (clockwise) {
+-					delta = -delta;
+-				}
+-				return GUIUtils.restrictAngle(angle + delta, -Math.PI);
+-			} else {
+-				return angle;
+-			}
+-		}
+-
+-		@Override
+-		public void keyPressed(KeyEvent e) {
+-			switch (e.getKeyCode()) {
+-			case KeyEvent.VK_RIGHT:
+-				startTurning(true);
+-				break;
+-			case KeyEvent.VK_LEFT:
+-				startTurning(false);
+-				break;
+-			}
+-		}
+-
+-		@Override
+-		public void paintOverlay(Graphics2D g) {
+-			super.paintOverlay(g);
+-			painter.drawTurnAngleIndicator(g, getWormSprite(getSelectedWorm()),
+-					getCurrentAngle());
+-		}
+-	}
+-
+-	private final PlayGameScreenPainter painter;
+-	private final GameState gameState;
+-
+-	private final Set<Sprite> sprites = new HashSet<Sprite>();
+-
+-	private static class MessageDisplay {
+-		private LinkedList<String> messages = new LinkedList<String>();
+-		private long currentMessageDisplayedSince;
+-
+-		public MessageDisplay() {
+-		}
+-
+-		public void addMessage(String message) {
+-			if (messages.isEmpty() || !messages.getLast().equals(message))
+-				this.messages.add(message);
+-		}
+-
+-		private boolean isDisplayingMessage() {
+-			return currentMessageDisplayedSince > 0;
+-		}
+-
+-		private double currentDisplayTime() {
+-			return (System.currentTimeMillis() - currentMessageDisplayedSince) / 1000.0;
+-		}
+-
+-		private String currentMessage() {
+-			return messages.peek();
+-		}
+-
+-		private void gotoNextMessage() {
+-			if (!messages.isEmpty()) {
+-				currentMessageDisplayedSince = System.currentTimeMillis();
+-			} else {
+-				currentMessageDisplayedSince = 0;
+-			}
+-		}
+-
+-		public String getMessage() {
+-			if (isDisplayingMessage()) {
+-				if (currentDisplayTime() >= GUIConstants.MESSAGE_DISPLAY_TIME) {
+-					messages.remove();
+-					gotoNextMessage();
+-				}
+-			} else {
+-				gotoNextMessage();
+-			}
+-			return currentMessage();
+-		}
+-	}
+-
+-	private MessageDisplay messageDisplay = new MessageDisplay();
+-
+-	public PlayGameScreen(WormsGUI gui, GameState state) {
+-		super(gui);
+-		this.gameState = state;
+-		this.painter = createPainter();
+-	}
+-
+-	protected InputMode createDefaultInputMode() {
+-		return new DefaultInputMode();
+-	}
+-
+-	@Override
+-	protected void screenStarted() {
+-		createSprites();
+-		runGameLoop();
+-	}
+-
+-	private void runGameLoop() {
+-		final AtomicLong lastUpdateTimestamp = new AtomicLong();
+-
+-		final Timer timer = new Timer(1000 / GUIConstants.FRAMERATE,
+-				new ActionListener() {
+-					@Override
+-					public void actionPerformed(ActionEvent e) {
+-						long now = System.currentTimeMillis();
+-						long delta = now - lastUpdateTimestamp.getAndSet(now);
+-						double dt = delta / 1000.0 * GUIConstants.TIME_SCALE;
+-						gameState.evolve(dt);
+-						repaint();
+-					}
+-				});
+-		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+-			@Override
+-			public void uncaughtException(Thread t, Throwable e) {
+-				timer.stop();
+-				e.printStackTrace();
+-				getGUI().showError(
+-						e.getClass().getName() + ": " + e.getMessage());
+-			}
+-		});
+-		lastUpdateTimestamp.set(System.currentTimeMillis());
+-		timer.start();
+-	}
+-
+-	public void createSprites() {
+-		for (Worm worm : getGameState().getWorms()) {
+-			WormSprite sprite = createWormSprite(worm);
+-			sprites.add(sprite);
+-		}
+-	}
+-
+-	private WormSprite createWormSprite(Worm worm) {
+-		double x = getScreenX(getFacade().getX(worm));
+-		double y = getScreenY(getFacade().getY(worm));
+-		WormSprite sprite = new WormSprite(worm);
+-		sprite.setCenterLocation(x, y);
+-		sprite.setDirection(getFacade().getOrientation(worm));
+-		sprite.setRadius(getFacade().getRadius(worm));
+-		return sprite;
+-	}
+-
+-	public GameState getGameState() {
+-		return gameState;
+-	}
+-
+-	protected IFacade getFacade() {
+-		return getGameState().getFacade();
+-	}
+-
+-	protected PlayGameScreenPainter createPainter() {
+-		return new PlayGameScreenPainter(this);
+-	}
+-
+-	public <T extends Sprite> Set<T> getSpritesOfType(Class<T> type) {
+-		Set<T> result = new HashSet<T>();
+-		for (Sprite sprite : sprites) {
+-			if (type.isInstance(sprite)) {
+-				result.add(type.cast(sprite));
+-			}
+-		}
+-		return result;
+-	}
+-
+-	public WormSprite getWormSprite(Worm worm) {
+-		for (WormSprite sprite : getSpritesOfType(WormSprite.class)) {
+-			if (worm != null && worm.equals(sprite.getWorm())) {
+-				return sprite;
+-			}
+-		}
+-		return null;
+-	}
+-
+-	public void move(int nbSteps) {
+-		Worm worm = getSelectedWorm();
+-
+-		if (worm != null) {
+-			getGameState().enqueueCommand(
+-					new Move(getFacade(), worm, nbSteps, this));
+-		}
+-	}
+-
+-	public void jump() {
+-		Worm worm = getSelectedWorm();
+-		if (worm != null) {
+-			getGameState().enqueueCommand(new Jump(getFacade(), worm, this));
+-		}
+-
+-	}
+-
+-	public void turn(double angle) {
+-		Worm worm = getSelectedWorm();
+-		angle = GUIUtils.restrictAngle(angle, -Math.PI);
+-
+-		if (worm != null) {
+-			getGameState().enqueueCommand(
+-					new Turn(getFacade(), worm, angle, this));
+-		}
+-	}
+-
+-	public void changeName(String newName) {
+-		Worm worm = getSelectedWorm();
+-
+-		if (worm != null) {
+-			getGameState().enqueueCommand(
+-					new Rename(getFacade(), worm, newName, this));
+-		}
+-	}
+-
+-	public void resizeWorm(boolean makeLarger) {
+-		Worm worm = getSelectedWorm();
+-
+-		if (worm != null) {
+-			double factor = 1.0 + (makeLarger ? GUIConstants.RESIZE_FACTOR
+-					: -GUIConstants.RESIZE_FACTOR);
+-			getGameState().enqueueCommand(
+-					new Resize(getFacade(), worm, factor, this));
+-		}
+-	}
+-
+-	private Worm getSelectedWorm() {
+-		return getGameState().getSelectedWorm();
+-	}
+-
+-	@Override
+-	protected void paintScreen(Graphics2D g) {
+-		painter.paint(g);
+-		String message = messageDisplay.getMessage();
+-		if (message != null) {
+-			painter.paintMessage(g, message);
+-		}
+-	}
+-
+-	public void addMessage(String message) {
+-		messageDisplay.addMessage(message);
+-	}
+-
+-	public static PlayGameScreen create(WormsGUI gui, GameState gameState,
+-			boolean debugMode) {
+-		if (!debugMode) {
+-			return new PlayGameScreen(gui, gameState);
+-		} else {
+-			return new PlayGameScreen(gui, gameState) {
+-				@Override
+-				protected PlayGameScreenPainter createPainter() {
+-					return new PlayGameScreenDebugPainter(this);
+-				}
+-			};
+-		}
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/game/PlayGameScreenDebugPainter.java b/src-provided/worms/gui/game/PlayGameScreenDebugPainter.java
+deleted file mode 100644
+index 519158e..0000000
+--- a/src-provided/worms/gui/game/PlayGameScreenDebugPainter.java
++++ /dev/null
+@@ -1,95 +0,0 @@
+-package worms.gui.game;
+-
+-import java.awt.Color;
+-import java.awt.Shape;
+-
+-import worms.gui.GUIUtils;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.ModelException;
+-
+-public class PlayGameScreenDebugPainter extends PlayGameScreenPainter {
+-
+-	private static final int LOCATION_MARKER_SIZE = 4;
+-
+-	public PlayGameScreenDebugPainter(PlayGameScreen screen) {
+-		super(screen);
+-	}
+-
+-	@Override
+-	protected void paintWorm(WormSprite sprite) {
+-		super.paintWorm(sprite);
+-
+-		if (getState().getSelectedWorm() != sprite.getWorm()) {
+-			drawOutline(sprite);
+-			drawJumpMarkers(sprite); // also draw for other worms
+-		}
+-
+-		drawDirectionLine(sprite);
+-
+-		drawLocationMarker(sprite);
+-
+-	}
+-
+-	@Override
+-	protected void drawJumpMarkers(WormSprite sprite) {
+-		try {
+-			double time = getFacade().getJumpTime(sprite.getWorm());
+-			double[] prevXY = getFacade().getJumpStep(sprite.getWorm(), 0);
+-			int n = 1 + (int) (time / JUMP_MARKER_TIME_DISTANCE * 2);
+-			for (int i = 1; i <= n; i++) {
+-				double dt = i * time / n;
+-				double[] xy = getFacade().getJumpStep(sprite.getWorm(), dt);
+-				if (xy != null && prevXY != null) {
+-					double jumpX = getScreenX(xy[0]);
+-					double jumpY = getScreenY(xy[1]);
+-					graphics.setColor(JUMP_MARKER_COLOR);
+-					graphics.drawLine((int) getScreenX(prevXY[0]),
+-							(int) getScreenY(prevXY[1]), (int) jumpX,
+-							(int) jumpY);
+-					prevXY = xy;
+-					drawCrossMarker(jumpX, jumpY, JUMP_MARKER_SIZE,
+-							JUMP_MARKER_COLOR);
+-				}
+-			}
+-		} catch (ModelException e) {
+-			// cannot jump; draw nothing
+-		}
+-	}
+-
+-	/**
+-	 * Draw a marker at the current location of the worm (which is not
+-	 * necessarily equal to the sprite's location)
+-	 */
+-	protected void drawLocationMarker(WormSprite worm) {
+-		double x = getFacade().getX(worm.getWorm());
+-		double y = getFacade().getY(worm.getWorm());
+-
+-		drawCrossMarker(getScreenX(x), getScreenY(y), LOCATION_MARKER_SIZE,
+-				Color.YELLOW);
+-	}
+-
+-	protected void drawOutline(WormSprite sprite) {
+-		double r = getFacade().getRadius(sprite.getWorm());
+-		double x = sprite.getCenterX();
+-		double y = sprite.getCenterY();
+-
+-		graphics.setColor(Color.YELLOW);
+-		Shape circle = GUIUtils.circleAt(x, y, GUIUtils.meterToPixels(r));
+-		graphics.draw(circle);
+-
+-	}
+-
+-	protected void drawDirectionLine(WormSprite sprite) {
+-		double r = GUIUtils.meterToPixels(getFacade().getRadius(
+-				sprite.getWorm()));
+-		double x = sprite.getCenterX();
+-		double y = sprite.getCenterY();
+-		double direction = getFacade().getOrientation(sprite.getWorm());
+-
+-		graphics.setColor(Color.YELLOW);
+-		graphics.drawLine((int) x, (int) y,
+-				(int) (x + r * Math.cos(direction)),
+-				(int) (y - r * Math.sin(direction)));
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/game/PlayGameScreenPainter.java b/src-provided/worms/gui/game/PlayGameScreenPainter.java
+deleted file mode 100644
+index 4a69daa..0000000
+--- a/src-provided/worms/gui/game/PlayGameScreenPainter.java
++++ /dev/null
+@@ -1,256 +0,0 @@
+-package worms.gui.game;
+-
+-import java.awt.Color;
+-import java.awt.Font;
+-import java.awt.Graphics2D;
+-import java.awt.Shape;
+-import java.awt.geom.Ellipse2D;
+-import java.awt.geom.Rectangle2D;
+-import java.awt.geom.RoundRectangle2D;
+-
+-import worms.gui.GUIUtils;
+-import worms.gui.GameState;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.IFacade;
+-import worms.model.ModelException;
+-
+-public class PlayGameScreenPainter {
+-
+-	protected static final Color SELECTION_FILL_COLOR = new Color(0xaa84b6cc,
+-			true);
+-	protected static final Color SELECTION_OUTLINE_COLOR = new Color(
+-			0xaaffffff, true);
+-	protected static final Color DIRECTION_MARKER_COLOR = new Color(0xcc84b6cc,
+-			true);
+-	protected static final Color TURN_ANGLE_MARKER_COLOR = new Color(
+-			0xcccc84b6, true);
+-	protected static final Color INVALID_TURN_ANGLE_MARKER_COLOR = Color.RED;
+-	protected static final Color ACTION_POINTS_COLOR = new Color(0xcc00cc00,
+-			true);
+-
+-	protected static final double ACTION_BAR_WIDTH = 30;
+-	protected static final double ACTION_BAR_HEIGHT = 5;
+-
+-	protected static final Color HIT_POINTS_COLOR = new Color(0xccff6a00, true);
+-	protected static final Color BAR_OUTLINE_COLOR = Color.WHITE;
+-	protected static final Color NAME_BAR_BACKGROUND = new Color(0x40ffffff,
+-			true);
+-	protected static final Color NAME_BAR_TEXT = Color.WHITE;
+-
+-	protected static final double TEXT_BAR_H_MARGIN = 4;
+-	protected static final double TEXT_BAR_V_MARGIN = 3;
+-	protected static final double TEXT_BAR_V_OFFSET = 2;
+-
+-	protected static final Color RENAME_BACKGROUND_COLOR = new Color(
+-			0x600e53a7, true);
+-	protected static final Color RENAME_TEXT_COLOR = Color.WHITE;
+-	protected static final Color MESSAGE_BACKGROUND_COLOR = new Color(
+-			0x60a7130e, true);
+-	protected static final Color MESSAGE_TEXT_COLOR = Color.WHITE;
+-	protected static final Color JUMP_MARKER_COLOR = Color.GRAY;
+-
+-	protected static final int JUMP_MARKER_SIZE = 1;
+-	protected static final double JUMP_MARKER_TIME_DISTANCE = 0.1; // worm-seconds
+-	protected static final double DIRECTION_INDICATOR_SIZE = 10;
+-
+-	protected Graphics2D graphics;
+-	private final PlayGameScreen screen;
+-
+-	public PlayGameScreenPainter(PlayGameScreen screen) {
+-		this.screen = screen;
+-	}
+-
+-	public PlayGameScreen getScreen() {
+-		return screen;
+-	}
+-
+-	protected GameState getState() {
+-		return screen.getGameState();
+-	}
+-
+-	protected IFacade getFacade() {
+-		return getState().getFacade();
+-	}
+-
+-	public void paint(Graphics2D g) {
+-		this.graphics = g;
+-
+-		for (WormSprite sprite : getScreen().getSpritesOfType(WormSprite.class)) {
+-			if (sprite.getWorm() == getState().getSelectedWorm()) {
+-				drawSelection(sprite);
+-			}
+-			paintWorm(sprite);
+-		}
+-
+-		this.graphics = null;
+-	}
+-
+-	protected double getScreenX(double x) {
+-		return getScreen().getScreenX(x);
+-	}
+-
+-	protected double getScreenY(double y) {
+-		return getScreen().getScreenY(y);
+-	}
+-
+-	protected void paintWorm(WormSprite sprite) {
+-
+-		sprite.draw(graphics);
+-
+-		drawName(sprite);
+-
+-		drawActionBar(sprite);
+-
+-		if (getState().getSelectedWorm() == sprite.getWorm()) {
+-			drawDirectionIndicator(sprite);
+-			drawJumpMarkers(sprite);
+-		}
+-	}
+-
+-	protected void drawName(WormSprite sprite) {
+-		final double radius = GUIUtils.meterToPixels(getFacade().getRadius(
+-				sprite.getWorm()));
+-		String name = getFacade().getName(sprite.getWorm());
+-
+-		if (name == null) {
+-			name = "(null)";
+-		}
+-
+-		Rectangle2D bounds = graphics.getFontMetrics().getStringBounds(name,
+-				graphics);
+-		final double stringWidth = bounds.getWidth();
+-		final double stringHeight = bounds.getHeight();
+-
+-		final double x = sprite.getCenterX() - stringWidth / 2;
+-		final double y = sprite.getCenterY() - radius - TEXT_BAR_V_OFFSET;
+-
+-		RoundRectangle2D nameBarFill = new RoundRectangle2D.Double(x
+-				- TEXT_BAR_H_MARGIN, y - stringHeight - TEXT_BAR_V_MARGIN,
+-				stringWidth + 2 * TEXT_BAR_H_MARGIN, stringHeight + 2
+-						* TEXT_BAR_V_MARGIN, 5, 5);
+-		graphics.setColor(NAME_BAR_BACKGROUND);
+-		graphics.fill(nameBarFill);
+-
+-		graphics.setColor(NAME_BAR_TEXT);
+-
+-		graphics.drawString(name, (float) x, (float) (y));
+-	}
+-
+-	protected void drawActionBar(WormSprite sprite) {
+-		double x = sprite.getCenterX();
+-		double y = sprite.getCenterY();
+-		double radius = GUIUtils.meterToPixels(getFacade().getRadius(
+-				sprite.getWorm()));
+-
+-		double actionPoints = getFacade().getActionPoints(sprite.getWorm());
+-		double maxActionPoints = getFacade().getMaxActionPoints(
+-				sprite.getWorm());
+-
+-		RoundRectangle2D actionBarFill = new RoundRectangle2D.Double(x
+-				- ACTION_BAR_WIDTH / 2, y + radius, actionPoints
+-				* ACTION_BAR_WIDTH / maxActionPoints, ACTION_BAR_HEIGHT, 5, 5);
+-		graphics.setColor(ACTION_POINTS_COLOR);
+-		graphics.fill(actionBarFill);
+-
+-		RoundRectangle2D actionBar = new RoundRectangle2D.Double(x
+-				- ACTION_BAR_WIDTH / 2, y + radius, ACTION_BAR_WIDTH,
+-				ACTION_BAR_HEIGHT, 5, 5);
+-		graphics.setColor(BAR_OUTLINE_COLOR);
+-		graphics.draw(actionBar);
+-	}
+-
+-	protected void drawSelection(WormSprite sprite) {
+-		double x = sprite.getCenterX();
+-		double y = sprite.getCenterY();
+-		double r = getFacade().getRadius(sprite.getWorm());
+-
+-		graphics.setColor(SELECTION_FILL_COLOR);
+-
+-		Shape circle = GUIUtils.circleAt(x, y, GUIUtils.meterToPixels(r));
+-		graphics.fill(circle);
+-	}
+-
+-	protected void drawDirectionIndicator(WormSprite sprite) {
+-		double x = sprite.getCenterX();
+-		double y = sprite.getCenterY();
+-		double r = GUIUtils.meterToPixels(getFacade().getRadius(
+-				sprite.getWorm()));
+-		r += DIRECTION_INDICATOR_SIZE / 2;
+-		double direction = GUIUtils.restrictDirection(getFacade()
+-				.getOrientation(sprite.getWorm()));
+-
+-		graphics.setColor(DIRECTION_MARKER_COLOR);
+-
+-		Shape directionIndicator = new Ellipse2D.Double(x + r
+-				* Math.cos(direction) - DIRECTION_INDICATOR_SIZE / 2, y - r
+-				* Math.sin(direction) - DIRECTION_INDICATOR_SIZE / 2,
+-				DIRECTION_INDICATOR_SIZE, DIRECTION_INDICATOR_SIZE);
+-		graphics.fill(directionIndicator);
+-	}
+-
+-	void drawTurnAngleIndicator(Graphics2D graphics, WormSprite sprite,
+-			double angle) {
+-		double x = sprite.getCenterX();
+-		double y = sprite.getCenterY();
+-		double r = GUIUtils.meterToPixels(getFacade().getRadius(
+-				sprite.getWorm()));
+-		r += DIRECTION_INDICATOR_SIZE / 2;
+-		double direction = GUIUtils.restrictDirection(getFacade()
+-				.getOrientation(sprite.getWorm()) + angle);
+-
+-		if (getFacade().canTurn(sprite.getWorm(), angle)) {
+-			graphics.setColor(TURN_ANGLE_MARKER_COLOR);
+-		} else {
+-			graphics.setColor(INVALID_TURN_ANGLE_MARKER_COLOR);
+-		}
+-
+-		Shape directionIndicator = new Ellipse2D.Double(x + r
+-				* Math.cos(direction) - DIRECTION_INDICATOR_SIZE / 2, y - r
+-				* Math.sin(direction) - DIRECTION_INDICATOR_SIZE / 2,
+-				DIRECTION_INDICATOR_SIZE, DIRECTION_INDICATOR_SIZE);
+-		graphics.fill(directionIndicator);
+-	}
+-
+-	protected void drawJumpMarkers(WormSprite sprite) {
+-		try {
+-			double time = getFacade().getJumpTime(sprite.getWorm());
+-			int n = 1 + (int) (time / JUMP_MARKER_TIME_DISTANCE);
+-			for (int i = 1; i <= n; i++) {
+-				double dt = i * time / n;
+-				double[] xy = getFacade().getJumpStep(sprite.getWorm(), dt);
+-				if (xy != null) {
+-					double jumpX = getScreenX(xy[0]);
+-					double jumpY = getScreenY(xy[1]);
+-					drawCrossMarker(jumpX, jumpY, JUMP_MARKER_SIZE,
+-							JUMP_MARKER_COLOR);
+-				}
+-			}
+-		} catch (ModelException e) {
+-			// cannot jump; draw nothing
+-		}
+-	}
+-
+-	protected void drawCrossMarker(double x, double y, int size, Color color) {
+-		graphics.setColor(color);
+-		graphics.drawLine((int) (x - size), (int) y, (int) (x + size), (int) y);
+-		graphics.drawLine((int) x, (int) (y - size), (int) x, (int) (y + size));
+-	}
+-
+-	void paintNameEntry(Graphics2D g, String enteredName) {
+-		g.setColor(RENAME_BACKGROUND_COLOR);
+-		g.fillRect(0, 0, getScreen().getScreenWidth(), 120);
+-		g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
+-		g.setColor(RENAME_TEXT_COLOR);
+-		GUIUtils.drawCenteredString(g, "Enter new name for worm: "
+-				+ enteredName + "\u2502", getScreen().getScreenWidth(), 100);
+-	}
+-
+-	void paintMessage(Graphics2D g, String message) {
+-		g.setColor(MESSAGE_BACKGROUND_COLOR);
+-		g.fillRect(0, 0, getScreen().getScreenWidth(), 120);
+-		g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
+-		g.setColor(MESSAGE_TEXT_COLOR);
+-		GUIUtils.drawCenteredString(g, message, getScreen().getScreenWidth(),
+-				100);
+-	}
+-}
+diff --git a/src-provided/worms/gui/game/commands/Command.java b/src-provided/worms/gui/game/commands/Command.java
+deleted file mode 100644
+index 634f7c3..0000000
+--- a/src-provided/worms/gui/game/commands/Command.java
++++ /dev/null
+@@ -1,68 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.game.PlayGameScreen;
+-import worms.model.IFacade;
+-
+-public abstract class Command {
+-
+-	private final IFacade facade;
+-	private final PlayGameScreen screen;
+-
+-	private double elapsedTime;
+-	private boolean cancelled = false;
+-	private boolean started = false;
+-
+-	protected Command(IFacade facade, PlayGameScreen screen) {
+-		this.facade = facade;
+-		this.screen = screen;
+-	}
+-
+-	protected PlayGameScreen getScreen() {
+-		return screen;
+-	}
+-
+-	protected IFacade getFacade() {
+-		return facade;
+-	}
+-
+-	public final void startExecution() {
+-		if (canExecute()) {
+-			doStartExecution();
+-			started = true;
+-		} else {
+-			cancelled = true;
+-			executionCancelled();
+-		}
+-	}
+-
+-	public final void update(double dt) {
+-		elapsedTime += dt;
+-		if (!isFinished()) {
+-			doUpdate(dt);
+-		}
+-	}
+-
+-	public double getElapsedTime() {
+-		return elapsedTime;
+-	}
+-
+-	public boolean isStarted() {
+-		return started;
+-	}
+-
+-	public final boolean isFinished() {
+-		return cancelled || (isStarted() && isDoneExecuting());
+-	}
+-
+-	protected abstract boolean isDoneExecuting();
+-
+-	protected abstract boolean canExecute();
+-
+-	protected abstract void doStartExecution();
+-	
+-	protected void executionCancelled() {
+-		
+-	}
+-
+-	protected abstract void doUpdate(double dt);
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/CommandProcessor.java b/src-provided/worms/gui/game/commands/CommandProcessor.java
+deleted file mode 100644
+index 7b261f5..0000000
+--- a/src-provided/worms/gui/game/commands/CommandProcessor.java
++++ /dev/null
+@@ -1,36 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import java.util.LinkedList;
+-import java.util.Queue;
+-
+-public class CommandProcessor {
+-	private Queue<Command> commandQueue = new LinkedList<Command>();
+-	private Command executingCommand;
+-
+-	public void enqueueCommand(Command cmd) {
+-		commandQueue.add(cmd);
+-	}
+-
+-	private void startNextCommand() {
+-		if (!commandQueue.isEmpty()) {
+-			executingCommand = commandQueue.poll();
+-			executingCommand.startExecution();
+-		} else {
+-			executingCommand = null;
+-		}
+-	}
+-
+-	public void advanceCommandQueue(double timeDelta) {
+-		if (executingCommand == null) {
+-			startNextCommand();
+-		}
+-		if (executingCommand != null) {
+-			executingCommand.update(timeDelta);
+-			while (executingCommand != null
+-					&& executingCommand.isFinished()) {
+-				startNextCommand();
+-			}
+-		}
+-	}
+-
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/InstantaneousCommand.java b/src-provided/worms/gui/game/commands/InstantaneousCommand.java
+deleted file mode 100644
+index 91e068e..0000000
+--- a/src-provided/worms/gui/game/commands/InstantaneousCommand.java
++++ /dev/null
+@@ -1,19 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.game.PlayGameScreen;
+-import worms.model.IFacade;
+-
+-public abstract class InstantaneousCommand extends Command {
+-	protected InstantaneousCommand(IFacade facade, PlayGameScreen screen) {
+-		super(facade, screen);
+-	}
+-
+-	@Override
+-	protected final boolean isDoneExecuting() {
+-		return true;
+-	}
+-
+-	@Override
+-	protected final void doUpdate(double dt) {
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/Jump.java b/src-provided/worms/gui/game/commands/Jump.java
+deleted file mode 100644
+index 2292051..0000000
+--- a/src-provided/worms/gui/game/commands/Jump.java
++++ /dev/null
+@@ -1,70 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.game.PlayGameScreen;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.IFacade;
+-import worms.model.ModelException;
+-import worms.model.Worm;
+-
+-public class Jump extends Command {
+-	private final Worm worm;
+-	private boolean finished = false;
+-
+-	public Jump(IFacade facade, Worm worm, PlayGameScreen screen) {
+-		super(facade, screen);
+-		this.worm = worm;
+-	}
+-
+-	public Worm getWorm() {
+-		return worm;
+-	}
+-
+-	@Override
+-	protected boolean canExecute() {
+-		return worm != null;
+-	}
+-
+-	@Override
+-	protected void doStartExecution() {
+-
+-	}
+-	
+-	@Override
+-	protected void executionCancelled() {
+-		getScreen().addMessage("This worm cannot jump :(");
+-	}
+-
+-	private double getTotalDuration() {
+-		return getFacade().getJumpTime(getWorm());
+-	}
+-
+-	@Override
+-	protected void doUpdate(double dt) {
+-		WormSprite sprite = getScreen().getWormSprite(getWorm());
+-
+-		try {
+-			if (getElapsedTime() >= getTotalDuration()) {
+-				getFacade().jump(worm);
+-				finished = true;
+-				double x = getScreen().getScreenX(getFacade().getX(getWorm()));
+-				double y = getScreen().getScreenY(getFacade().getY(getWorm()));
+-
+-				sprite.setCenterLocation(x, y);
+-			} else {
+-				double[] xy = getFacade().getJumpStep(getWorm(),
+-						getElapsedTime());
+-
+-				sprite.setCenterLocation(getScreen().getScreenX(xy[0]),
+-						getScreen().getScreenY(xy[1]));
+-			}
+-		} catch (ModelException e) {
+-			finished = true;
+-			executionCancelled();
+-		}
+-	}
+-
+-	@Override
+-	protected boolean isDoneExecuting() {
+-		return finished;
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/Move.java b/src-provided/worms/gui/game/commands/Move.java
+deleted file mode 100644
+index 00593b5..0000000
+--- a/src-provided/worms/gui/game/commands/Move.java
++++ /dev/null
+@@ -1,70 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.GUIConstants;
+-import worms.gui.game.PlayGameScreen;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.IFacade;
+-import worms.model.Worm;
+-
+-public class Move extends Command {
+-	private final Worm worm;
+-	private final int nbSteps;
+-
+-	private double startX;
+-	private double startY;
+-
+-	private double finalX;
+-	private double finalY;
+-
+-	public Move(IFacade facade, Worm worm, int nbSteps, PlayGameScreen screen) {
+-		super(facade, screen);
+-		this.worm = worm;
+-		this.nbSteps = nbSteps;
+-	}
+-
+-	public Worm getWorm() {
+-		return worm;
+-	}
+-
+-	@Override
+-	protected boolean canExecute() {
+-		return worm != null && getFacade().canMove(worm, nbSteps);
+-	}
+-
+-	private double getTotalDuration() {
+-		return nbSteps * GUIConstants.MOVE_DURATION;
+-	}
+-
+-	@Override
+-	protected void doUpdate(double dt) {
+-		WormSprite sprite = getScreen().getWormSprite(getWorm());
+-		if (getElapsedTime() < getTotalDuration()) {
+-			double t = getElapsedTime() / getTotalDuration();
+-			t = t * t * (3 - 2 * t); // smooth-step interpolation
+-			double x = (1.0 - t) * startX + t * finalX;
+-			double y = (1.0 - t) * startY + t * finalY;
+-			sprite.setCenterLocation(x, y);
+-		} else {
+-			sprite.setCenterLocation(finalX, finalY);
+-		}
+-	}
+-
+-	@Override
+-	protected boolean isDoneExecuting() {
+-		return getElapsedTime() > getTotalDuration();
+-	}
+-
+-	@Override
+-	protected void executionCancelled() {
+-		getScreen().addMessage("This worm cannot move :(");
+-	}
+-
+-	@Override
+-	protected void doStartExecution() {
+-		this.startX = getScreen().getScreenX(getFacade().getX(worm));
+-		this.startY = getScreen().getScreenY(getFacade().getY(worm));
+-		getFacade().move(worm, nbSteps);
+-		this.finalX = getScreen().getScreenX(getFacade().getX(worm));
+-		this.finalY = getScreen().getScreenY(getFacade().getY(worm));
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/Rename.java b/src-provided/worms/gui/game/commands/Rename.java
+deleted file mode 100644
+index c2cc90c..0000000
+--- a/src-provided/worms/gui/game/commands/Rename.java
++++ /dev/null
+@@ -1,33 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.game.PlayGameScreen;
+-import worms.model.IFacade;
+-import worms.model.ModelException;
+-import worms.model.Worm;
+-
+-public class Rename extends InstantaneousCommand {
+-	private final String newName;
+-	private final Worm worm;
+-
+-	public Rename(IFacade facade, Worm worm, String newName,
+-			PlayGameScreen screen) {
+-		super(facade, screen);
+-		this.worm = worm;
+-		this.newName = newName;
+-	}
+-
+-	@Override
+-	protected boolean canExecute() {
+-		return worm != null;
+-	}
+-
+-	@Override
+-	protected void doStartExecution() {
+-		try {
+-			getFacade().rename(worm, newName);
+-		} catch (ModelException e) {
+-			// an invalid name
+-			getScreen().addMessage("Invalid name: " + newName);
+-		}
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/Resize.java b/src-provided/worms/gui/game/commands/Resize.java
+deleted file mode 100644
+index d278dbb..0000000
+--- a/src-provided/worms/gui/game/commands/Resize.java
++++ /dev/null
+@@ -1,39 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.game.PlayGameScreen;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.IFacade;
+-import worms.model.ModelException;
+-import worms.model.Worm;
+-
+-public class Resize extends InstantaneousCommand {
+-	private final Worm worm;
+-	private final double factor;
+-
+-	public Resize(IFacade facade, Worm worm, double factor,
+-			PlayGameScreen screen) {
+-		super(facade, screen);
+-		this.worm = worm;
+-		this.factor = factor;
+-	}
+-
+-	@Override
+-	protected boolean canExecute() {
+-		return worm != null;
+-	}
+-
+-	@Override
+-	protected void doStartExecution() {
+-		try {
+-			double newRadius = factor * getFacade().getRadius(worm);
+-			getFacade().setRadius(worm, newRadius);
+-			WormSprite sprite = getScreen().getWormSprite(worm);
+-			sprite.setRadius(newRadius);
+-		} catch (ModelException e) {
+-			// an invalid radius
+-			getScreen().addMessage(
+-					"Cannot " + (factor > 1.0 ? "grow" : "shrink")
+-							+ " that worm anymore :(");
+-		}
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/commands/Turn.java b/src-provided/worms/gui/game/commands/Turn.java
+deleted file mode 100644
+index 2291fa5..0000000
+--- a/src-provided/worms/gui/game/commands/Turn.java
++++ /dev/null
+@@ -1,34 +0,0 @@
+-package worms.gui.game.commands;
+-
+-import worms.gui.game.PlayGameScreen;
+-import worms.gui.game.sprites.WormSprite;
+-import worms.model.IFacade;
+-import worms.model.Worm;
+-
+-public class Turn extends InstantaneousCommand {
+-	private final Worm worm;
+-	private final double angle;
+-
+-	public Turn(IFacade facade, Worm worm, double angle, PlayGameScreen screen) {
+-		super(facade, screen);
+-		this.worm = worm;
+-		this.angle = angle;
+-	}
+-
+-	@Override
+-	protected boolean canExecute() {
+-		return getFacade().canTurn(worm, angle);
+-	}
+-	
+-	@Override
+-	protected void executionCancelled() {
+-		getScreen().addMessage("This worm cannot perform that turn :(");
+-	}
+-	
+-	@Override
+-	protected void doStartExecution() {
+-		getFacade().turn(worm, angle);
+-		WormSprite sprite = getScreen().getWormSprite(worm);
+-		sprite.setDirection(getFacade().getOrientation(worm));
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/sprites/ImageSprite.java b/src-provided/worms/gui/game/sprites/ImageSprite.java
+deleted file mode 100644
+index 076de36..0000000
+--- a/src-provided/worms/gui/game/sprites/ImageSprite.java
++++ /dev/null
+@@ -1,130 +0,0 @@
+-package worms.gui.game.sprites;
+-
+-import java.awt.Graphics2D;
+-import java.awt.Image;
+-import java.awt.image.BufferedImage;
+-import java.io.File;
+-import java.io.IOException;
+-
+-import javax.imageio.ImageIO;
+-
+-public class ImageSprite extends Sprite {
+-
+-	// original image, at original scale
+-	private final BufferedImage originalImage;
+-
+-	// only created when scale != 1.0
+-	private BufferedImage scaledImage;
+-	// only create when necessary
+-	private BufferedImage scaledImageHflipped;
+-
+-	private boolean hflipped = false;
+-
+-	private double scale;
+-
+-	public ImageSprite(String filename) {
+-		this.originalImage = loadImage(filename);
+-		this.scaledImage = originalImage;
+-		this.scale = 1.0;
+-	}
+-
+-	@Override
+-	public double getWidth(Graphics2D g) {
+-		return getImageWidth() * scale;
+-	}
+-
+-	@Override
+-	public double getHeight(Graphics2D g) {
+-		return getImageHeight() * scale;
+-	}
+-
+-	public int getImageWidth() {
+-		return originalImage.getWidth();
+-	}
+-
+-	public int getImageHeight() {
+-		return originalImage.getHeight();
+-	}
+-
+-	public void setScale(double scale) {
+-		this.scale = scale;
+-		if (scale != 1.0) {
+-			this.scaledImage = toBufferedImage(originalImage.getScaledInstance(
+-					(int) (scale * originalImage.getWidth()),
+-					(int) (scale * originalImage.getHeight()),
+-					Image.SCALE_SMOOTH));
+-		} else {
+-			this.scaledImage = originalImage;
+-		}
+-
+-		if (isHflipped()) {
+-			this.scaledImageHflipped = hflip(this.scaledImage);
+-		} else {
+-			this.scaledImageHflipped = null;
+-		}
+-	}
+-
+-	public double getScale() {
+-		return scale;
+-	}
+-
+-	protected Image getImageToDraw() {
+-		Image imageToDraw = scaledImage;
+-		if (isHflipped()) {
+-			if (scaledImageHflipped == null) {
+-				scaledImageHflipped = hflip(scaledImage);
+-			}
+-			imageToDraw = scaledImageHflipped;
+-		}
+-		return imageToDraw;
+-	}
+-
+-	protected BufferedImage loadImage(String filename) {
+-		try {
+-			return ImageIO.read(new File(filename));
+-		} catch (IOException e) {
+-			throw new RuntimeException(
+-					"Could not read file '" + filename + "'", e);
+-		}
+-	}
+-
+-	public void setHflipped(boolean value) {
+-		hflipped = value;
+-	}
+-
+-	public boolean isHflipped() {
+-		return hflipped;
+-	}
+-
+-	protected static BufferedImage hflip(BufferedImage image) {
+-		BufferedImage flippedImage = new BufferedImage(image.getWidth(),
+-				image.getHeight(), image.getType());
+-		Graphics2D flippedGraphics = flippedImage.createGraphics();
+-		flippedGraphics.scale(-1, 1);
+-		flippedGraphics.drawImage(image, -image.getWidth(null), 0, null);
+-		flippedGraphics.dispose();
+-		return flippedImage;
+-	}
+-
+-	protected static BufferedImage toBufferedImage(Image img) {
+-		if (img instanceof BufferedImage) {
+-			return (BufferedImage) img;
+-		}
+-
+-		BufferedImage result = new BufferedImage(img.getWidth(null),
+-				img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+-
+-		Graphics2D resultGraphics = result.createGraphics();
+-		resultGraphics.drawImage(img, 0, 0, null);
+-		resultGraphics.dispose();
+-
+-		return result;
+-	}
+-
+-	@Override
+-	public void draw(Graphics2D g) {
+-		int x = (int) (getCenterX() - getWidth(g) / 2);
+-		int y = (int) (getCenterY() - getHeight(g) / 2);
+-		g.drawImage(getImageToDraw(), x, y, null);
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/sprites/Sprite.java b/src-provided/worms/gui/game/sprites/Sprite.java
+deleted file mode 100644
+index 7fc8e59..0000000
+--- a/src-provided/worms/gui/game/sprites/Sprite.java
++++ /dev/null
+@@ -1,37 +0,0 @@
+-package worms.gui.game.sprites;
+-
+-import java.awt.Graphics2D;
+-
+-public abstract class Sprite {
+-
+-	private double x;
+-	private double y;
+-
+-	public Sprite() {
+-		super();
+-	}
+-
+-	public abstract void draw(Graphics2D g);
+-
+-	public abstract double getHeight(Graphics2D g);
+-
+-	public abstract double getWidth(Graphics2D g);
+-
+-	public double[] getCenterLocation() {
+-		return new double[] { getCenterX(), getCenterY() };
+-	}
+-
+-	public void setCenterLocation(double x, double y) {
+-		this.x = x;
+-		this.y = y;
+-	}
+-
+-	public double getCenterX() {
+-		return x;
+-	}
+-
+-	public double getCenterY() {
+-		return y;
+-	}
+-
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/gui/game/sprites/WormSprite.java b/src-provided/worms/gui/game/sprites/WormSprite.java
+deleted file mode 100644
+index 816cd7c..0000000
+--- a/src-provided/worms/gui/game/sprites/WormSprite.java
++++ /dev/null
+@@ -1,53 +0,0 @@
+-package worms.gui.game.sprites;
+-
+-import worms.gui.GUIUtils;
+-import worms.model.Worm;
+-
+-public class WormSprite extends ImageSprite {
+-
+-	private final Worm worm;
+-
+-	public WormSprite(Worm worm) {
+-		super("images/worm.png");
+-		this.worm = worm;
+-	}
+-
+-	public Worm getWorm() {
+-		return worm;
+-	}
+-
+-	public void setDirection(double newDirection) {
+-		double direction = GUIUtils.restrictDirection(newDirection);
+-
+-		if (Math.PI / 2 > direction || 3 * Math.PI / 2 < direction) {
+-			setHflipped(true);
+-		} else {
+-			setHflipped(false);
+-		}
+-	}
+-
+-	/**
+-	 * @param radius
+-	 *            (in worm-meter)
+-	 */
+-	public void setRadius(double radius) {
+-		/*
+-		 * Height of the image (when drawn at native size) in worm-meters, given
+-		 * the scale at which the world is drawn to screen
+-		 */
+-		double imageHeightInMeters = GUIUtils.pixelToMeter(getImageHeight());
+-
+-		/*
+-		 * scale factor to nicely fit the image in a circle with diameter equal
+-		 * to the image height (value determined experimentally)
+-		 */
+-		double fitFactor = 0.8;
+-
+-		double scaleFactor = fitFactor * 2 * radius / imageHeightInMeters;
+-
+-		// limit scaling
+-		scaleFactor = Math.max(0.1, Math.min(scaleFactor, 100));
+-		
+-		setScale(scaleFactor);
+-	}
+-}
+diff --git a/src-provided/worms/gui/menu/AbstractMenuScreen.java b/src-provided/worms/gui/menu/AbstractMenuScreen.java
+deleted file mode 100644
+index 884ded9..0000000
+--- a/src-provided/worms/gui/menu/AbstractMenuScreen.java
++++ /dev/null
+@@ -1,126 +0,0 @@
+-package worms.gui.menu;
+-
+-import java.awt.Color;
+-import java.awt.Font;
+-import java.awt.Graphics2D;
+-import java.awt.event.KeyEvent;
+-import java.util.concurrent.ArrayBlockingQueue;
+-import java.util.concurrent.BlockingQueue;
+-
+-import worms.gui.GUIUtils;
+-import worms.gui.Screen;
+-import worms.gui.WormsGUI;
+-
+-public abstract class AbstractMenuScreen<Choice> extends Screen {
+-
+-	private static final int INSTRUCTIONS_AREA_HEIGHT = 100;
+-	private static final int CHOICE_HEIGHT = 30;
+-
+-	private static final Font DEFAULT_CHOICE_FONT = new Font(Font.SANS_SERIF,
+-			Font.PLAIN, (CHOICE_HEIGHT * 4) / 6);
+-	private static final Color DEFAULT_CHOICE_COLOR = Color.WHITE;
+-	private static final Font SELECTED_CHOICE_FONT = new Font(Font.SANS_SERIF,
+-			Font.PLAIN, (CHOICE_HEIGHT * 5) / 6);
+-	private static final Color SELECTED_CHOICE_COLOR = Color.YELLOW;
+-
+-	private final Choice[] choices;
+-
+-	private BlockingQueue<Choice> selection = new ArrayBlockingQueue<Choice>(1);
+-	private int selectedIndex = 0;
+-
+-	public AbstractMenuScreen(WormsGUI gui) {
+-		super(gui);
+-		this.choices = getChoices();
+-	}
+-
+-	protected class DefaultInputMode extends Screen.InputMode {
+-
+-		@Override
+-		public void keyReleased(KeyEvent e) {
+-
+-			switch (e.getKeyCode()) {
+-			case KeyEvent.VK_ESCAPE:
+-				getGUI().exit();
+-				break;
+-			case KeyEvent.VK_DOWN:
+-				selectedIndex = (selectedIndex + 1) % choices.length;
+-				repaint();
+-				break;
+-			case KeyEvent.VK_UP:
+-				selectedIndex = (selectedIndex + choices.length - 1)
+-						% choices.length;
+-				repaint();
+-				break;
+-			case KeyEvent.VK_ENTER:
+-				if (selection.isEmpty())
+-					selection.add(choices[selectedIndex]);
+-				break;
+-			}
+-		}
+-	}
+-
+-	@Override
+-	protected InputMode createDefaultInputMode() {
+-		return new DefaultInputMode();
+-	}
+-
+-	protected abstract Choice[] getChoices();
+-
+-	protected abstract String getDisplayName(Choice choice);
+-
+-	protected abstract String getInstructions();
+-
+-	public Choice select() {
+-		try {
+-			return selection.take();
+-		} catch (InterruptedException e) {
+-			e.printStackTrace();
+-			return null;
+-		}
+-	}
+-
+-	@Override
+-	protected void paintScreen(Graphics2D g) {
+-		paintInstructions(g);
+-
+-		int maxNbChoicesOnScreen = (getScreenHeight() - INSTRUCTIONS_AREA_HEIGHT)
+-				/ CHOICE_HEIGHT - 1;
+-		int start = 0;
+-		if (selectedIndex >= maxNbChoicesOnScreen) {
+-			start = selectedIndex - maxNbChoicesOnScreen + 1;
+-		}
+-
+-		int lastChoiceToDisplay = Math.min(start + maxNbChoicesOnScreen,
+-				choices.length);
+-		for (int index = start; index < lastChoiceToDisplay; index++) {
+-			Choice choice = choices[index];
+-			String str = getDisplayName(choice);
+-			if (index == selectedIndex) {
+-				g.setColor(SELECTED_CHOICE_COLOR);
+-				g.setFont(SELECTED_CHOICE_FONT);
+-				str = "\u00bb " + str + " \u00ab";
+-			} else {
+-				g.setColor(DEFAULT_CHOICE_COLOR);
+-				g.setFont(DEFAULT_CHOICE_FONT);
+-			}
+-			GUIUtils.drawCenteredString(g, str, getScreenWidth(),
+-					INSTRUCTIONS_AREA_HEIGHT + CHOICE_HEIGHT
+-							* (index - start));
+-		}
+-		if (lastChoiceToDisplay < choices.length) {
+-			g.setFont(DEFAULT_CHOICE_FONT);
+-			g.setColor(DEFAULT_CHOICE_COLOR);
+-			GUIUtils.drawCenteredString(g, "...", getScreenWidth(),
+-					INSTRUCTIONS_AREA_HEIGHT + CHOICE_HEIGHT
+-							* maxNbChoicesOnScreen);
+-		}
+-	}
+-
+-	private void paintInstructions(Graphics2D g) {
+-		g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
+-		g.setColor(Color.WHITE);
+-		GUIUtils.drawCenteredString(g, getInstructions(), getScreenWidth(),
+-				INSTRUCTIONS_AREA_HEIGHT / 2);
+-	}
+-
+-}
+diff --git a/src-provided/worms/gui/menu/MainMenuScreen.java b/src-provided/worms/gui/menu/MainMenuScreen.java
+deleted file mode 100644
+index 8bd6bd4..0000000
+--- a/src-provided/worms/gui/menu/MainMenuScreen.java
++++ /dev/null
+@@ -1,69 +0,0 @@
+-package worms.gui.menu;
+-
+-import worms.gui.GameState;
+-import worms.gui.WormsGUI;
+-import worms.gui.game.PlayGameScreen;
+-
+-enum MainMenuOption {
+-	Play("Play worms"), PlayDebug("Play worms (debug mode)"), Exit("Exit");
+-
+-	private final String displayString;
+-
+-	MainMenuOption(String displayString) {
+-		this.displayString = displayString;
+-	}
+-
+-	public String getDisplayString() {
+-		return displayString;
+-	}
+-}
+-
+-public class MainMenuScreen extends AbstractMenuScreen<MainMenuOption> {
+-
+-	public MainMenuScreen(WormsGUI gui) {
+-		super(gui);
+-	}
+-
+-	@Override
+-	protected MainMenuOption[] getChoices() {
+-		return MainMenuOption.values();
+-	}
+-
+-	@Override
+-	protected String getDisplayName(MainMenuOption option) {
+-		return option.getDisplayString();
+-	}
+-
+-	@Override
+-	protected String getInstructions() {
+-		return "Please make your choice";
+-	}
+-
+-	@Override
+-	protected void screenStarted() {
+-		MainMenuOption option = select();
+-		switch (option) {
+-		case Play:
+-			startGame(false);
+-			break;
+-		case PlayDebug:
+-			startGame(true);
+-			break;
+-		case Exit:
+-			getGUI().exit();
+-		}
+-	}
+-
+-	private void startGame(boolean debugMode) {
+-		WormsGUI gui = getGUI();
+-		GameState gameState = new GameState(gui.getFacade(),
+-				gui.getOptions().randomSeed, gui.getWidth(), gui.getHeight());
+-
+-		PlayGameScreen playGameScreen = PlayGameScreen.create(gui, gameState,
+-				debugMode);
+-
+-		gameState.startGame();
+-		getGUI().switchToScreen(playGameScreen);
+-	}
+-
+-}
+diff --git a/src-provided/worms/model/Facade.java b/src-provided/worms/model/Facade.java
+deleted file mode 100644
+index 3d9ce09..0000000
+--- a/src-provided/worms/model/Facade.java
++++ /dev/null
+@@ -1,10 +0,0 @@
+-package worms.model;
+-
+-/**
+- * 
+- * @author Emil 
+- *
+- */
+-public class Facade implements IFacade {
+-
+-}
+diff --git a/src-provided/worms/model/IFacade.java b/src-provided/worms/model/IFacade.java
+deleted file mode 100644
+index 17506d7..0000000
+--- a/src-provided/worms/model/IFacade.java
++++ /dev/null
+@@ -1,164 +0,0 @@
+-package worms.model;
+-
+-/**
+- * Implement this interface to connect your code to the user interface.
+- * 
+- * <ul>
+- * <li>Your class for representing a worm should have the name 
+- * <code>Worm</code> and be located in the package <code>worms.model</code>.
+- * </li>
+- * 
+- * <li>Connect your class to the user interface by creating a class named
+- * <code>Facade</code> in the package <code>worms.model</code> that implements <code>IFacade</code>.
+- * <p>
+- * The header of that class should look as follows:<br>
+- * <code>class Facade implements IFacade { ... }</code>
+- * </p>
+- * Consult the <a href=
+- * "http://docs.oracle.com/javase/tutorial/java/IandI/createinterface.html">
+- * Java tutorial</a> for more information on interfaces, if necessary.
+- * </li>
+- * 
+- * <li>Each method defined in the interface <code>IFacade</code> must be implemented
+- * by the class <code>Facade</code>. For example, the implementation of
+- * <code>getX</code> should call a method of the given <code>worm</code> to
+- * retrieve its x-coordinate.</li>
+- * 
+- * <li>Methods in this interface are allowed to throw only
+- * <code>ModelException</code>. No other exception types are allowed. This
+- * exception can be thrown only if calling a method of your <code>Worm</code>
+- * class with the given parameters would violate a precondition or if the method
+- * of your <code>Worm</code> class throws an exception (if so, wrap the
+- * exception in a <code>ModelException</code>). <b>ModelException should not be
+- * used anywhere outside of your Facade implementation.</b></li>
+- * 
+- * <li>The rules described above and the documentation described below for each
+- * method apply only to the class implementing IFacade. Your class for
+- * representing worms should follow the rules described in the assignment.</li>
+- * 
+- * <li>Do not modify the signatures of the methods defined in this interface.
+- * You can however add additional methods, as long as these additional methods
+- * do not overload the existing ones. Each additional method must be implemented
+- * in your class <code>Facade</code>.</li>
+- * 
+- * <li>Your class implementing <code>IFacade</code> should offer a default
+- * constructor.</li>
+- * </ul>
+- */
+-public interface IFacade {
+-
+-	/**
+-	 * Create a new worm that is positioned at the given location,
+-	 * looks in the given direction, has the given radius and the given name.
+-	 * 
+-	 * @param x
+-	 * The x-coordinate of the position of the new worm (in meter)
+-	 * @param y
+-	 * The y-coordinate of the position of the new worm (in meter)
+-	 * @param direction
+-	 * The direction of the new worm (in radians)
+-	 * @param radius 
+-	 * The radius of the new worm (in meter)
+-	 * @param name
+-	 * The name of the new worm
+-	 */
+-	Worm createWorm(double x, double y, double direction, double radius,
+-			String name);
+-
+-	/**
+-	 * Returns whether or not the given worm can move a given number of steps.
+-	 */
+-	boolean canMove(Worm worm, int nbSteps);
+-
+-	/**
+-	 * Moves the given worm by the given number of steps.
+-	 */
+-	void move(Worm worm, int nbSteps);
+-
+-	/**
+-	 * Returns whether or not the given worm can turn by the given angle.
+-	 */
+-	boolean canTurn(Worm worm, double angle);
+-
+-	/**
+-	 * Turns the given worm by the given angle.
+-	 */
+-	void turn(Worm worm, double angle);
+-
+-	/**
+-	 * Makes the given worm jump.
+-	 */
+-	void jump(Worm worm);
+-
+-	/**
+-	 * Returns the total amount of time (in seconds) that a
+-	 * jump of the given worm would take.
+-	 */
+-	double getJumpTime(Worm worm);
+-
+-	/**
+-	 * Returns the location on the jump trajectory of the given worm
+-	 * after a time t.
+-	 *  
+-	 * @return An array with two elements,
+-	 *  with the first element being the x-coordinate and
+-	 *  the second element the y-coordinate
+-	 */
+-	double[] getJumpStep(Worm worm, double t);
+-
+-	/**
+-	 * Returns the x-coordinate of the current location of the given worm.
+-	 */
+-	double getX(Worm worm);
+-
+-	/**
+-	 * Returns the y-coordinate of the current location of the given worm.
+-	 */
+-	double getY(Worm worm);
+-
+-	/**
+-	 * Returns the current orientation of the given worm (in radians).
+-	 */
+-	double getOrientation(Worm worm);
+-
+-	/**
+-	 * Returns the radius of the given worm.
+-	 */
+-	double getRadius(Worm worm);
+-	
+-	/**
+-	 * Sets the radius of the given worm to the given value.
+-	 */
+-	void setRadius(Worm worm, double newRadius);
+-	
+-	/**
+-	 * Returns the minimal radius of the given worm.
+-	 */
+-	double getMinimalRadius(Worm worm);
+-
+-	/**
+-	 * Returns the current number of action points of the given worm.
+-	 */
+-	int getActionPoints(Worm worm);
+-	
+-	/**
+-	 * Returns the maximum number of action points of the given worm.
+-	 */
+-	int getMaxActionPoints(Worm worm);
+-	
+-	/**
+-	 * Returns the name the given worm.
+-	 */
+-	String getName(Worm worm);
+-
+-	/**
+-	 * Renames the given worm.
+-	 */
+-	void rename(Worm worm, String newName);
+-
+-	/**
+-	 * Returns the mass of the given worm.
+-	 */
+-	double getMass(Worm worm);
+-
+-}
+diff --git a/src-provided/worms/model/ModelException.java b/src-provided/worms/model/ModelException.java
+deleted file mode 100644
+index 3b7e2a2..0000000
+--- a/src-provided/worms/model/ModelException.java
++++ /dev/null
+@@ -1,21 +0,0 @@
+-package worms.model;
+-
+-@SuppressWarnings("serial")
+-/**
+- * <code>Facade</code> is not allowed to throw exceptions except for <code>ModelException</code>.
+- * 
+- * Do not use ModelException outside of <code>Facade</code>.
+- */
+-public class ModelException extends RuntimeException {
+-	public ModelException(String message) {
+-		super(message);
+-	}
+-
+-	public ModelException(Throwable cause) {
+-		super(cause);
+-	}
+-
+-	public ModelException(String message, Throwable cause) {
+-		super(message, cause);
+-	}
+-}
+\ No newline at end of file
+diff --git a/src-provided/worms/model/Worm.java b/src-provided/worms/model/Worm.java
+deleted file mode 100644
+index ca3acf4..0000000
+--- a/src-provided/worms/model/Worm.java
++++ /dev/null
+@@ -1,5 +0,0 @@
+-package worms.model;
+-
+-public class Worm {
+-
+-}
+diff --git a/src-provided/worms/util/Util.java b/src-provided/worms/util/Util.java
+deleted file mode 100644
+index e35512c..0000000
+--- a/src-provided/worms/util/Util.java
++++ /dev/null
+@@ -1,50 +0,0 @@
+-package worms.util;
+-
+-public class Util {
+-	public static final double DEFAULT_EPSILON = 1e-4;
+-
+-	public static boolean fuzzyEquals(double x, double y) {
+-		return fuzzyEquals(x, y, DEFAULT_EPSILON);
+-	}
+-
+-	public static boolean fuzzyEquals(double x, double y, double eps) {
+-		if (Double.isNaN(x) || Double.isNaN(y))
+-			return false;
+-		return Math.abs(x - y) <= eps
+-				|| Double.valueOf(x).equals(Double.valueOf(y));
+-	}
+-
+-	public static boolean fuzzyLessThanOrEqualTo(double x, double y) {
+-		return fuzzyLessThanOrEqualTo(x, y, DEFAULT_EPSILON);
+-	}
+-
+-	public static boolean fuzzyLessThanOrEqualTo(double x, double y, double eps) {
+-		if (fuzzyEquals(x, y, eps)) {
+-			return true;
+-		} else {
+-			return Double.compare(x, y) < 0;
+-		}
+-	}
+-
+-	public static boolean fuzzyGreaterThanOrEqualTo(double x, double y) {
+-		return fuzzyGreaterThanOrEqualTo(x, y, DEFAULT_EPSILON);
+-	}
+-
+-	public static boolean fuzzyGreaterThanOrEqualTo(double x, double y,
+-			double eps) {
+-		if (fuzzyEquals(x, y, eps)) {
+-			return true;
+-		} else {
+-			return Double.compare(x, y) > 0;
+-		}
+-	}
+-
+-	public static double absoluteError(double expected, double actual) {
+-		return Math.abs(expected - actual);
+-	}
+-
+-	public static double relativeError(double expected, double actual) {
+-		return absoluteError(expected, actual) / Math.abs(expected);
+-	}
+-
+-}
+\ No newline at end of file
+diff --git a/src/worms/model/Facade.java b/src/worms/model/Facade.java
+index 1b690b3..f9f8aa4 100644
+--- a/src/worms/model/Facade.java
++++ b/src/worms/model/Facade.java
+@@ -1,6 +1,3 @@
+-/**
+- * 
+- */
+ package worms.model;
+ 
+ /**
+@@ -21,8 +18,11 @@ public class Facade implements IFacade {
+ 	}
+ 
+ 	@Override
+-	public void move(Worm worm, int nbSteps) {
+-		worm.move(nbSteps);
++	public void move(Worm worm, int nbSteps) throws ModelException {
++		try { worm.move(nbSteps); }
++		catch (IllegalArgumentException exc) {
++			throw new ModelException("Could not move!");
++		}
+ 	}
+ 
+ 	@Override
+@@ -57,12 +57,12 @@ public class Facade implements IFacade {
+ 
+ 	@Override
+ 	public double getY(Worm worm) {
+-		return 0;
++		return worm.getY();
+ 	}
+ 
+ 	@Override
+ 	public double getOrientation(Worm worm) {
+-		return worm.getY();
++		return worm.getOrientation();
+ 	}
+ 
+ 	@Override
+@@ -77,9 +77,7 @@ public class Facade implements IFacade {
+ 
+ 	@Override
+ 	public double getMinimalRadius(Worm worm) {
+-		// TODO Auto-generated method stub
+-		// TODO instead value 0.25 m
+-		return worm.getMinimalRadius();
++		return Worm.getMinimalRadius();
+ 	}
+ 
+ 	@Override
+@@ -98,9 +96,12 @@ public class Facade implements IFacade {
+ 	}
+ 
+ 	@Override
+-	public void rename(Worm worm, String newName) {
+-		// TODO Maybe setName?
+-		worm.rename(newName);
++	public void rename(Worm worm, String newName) throws ModelException {
++		// TODO rename/ setName?
++		try { worm.setName(newName); }
++		catch (IllegalArgumentException exc) {
++			throw new ModelException("Invalid name!");
++		}
+ 	}
+ 
+ 	@Override
+diff --git a/src/worms/model/Worm.java b/src/worms/model/Worm.java
+index 6533a83..f8212d7 100644
+--- a/src/worms/model/Worm.java
++++ b/src/worms/model/Worm.java
+@@ -1,9 +1,13 @@
+ package worms.model;
+ 
++import be.kuleuven.cs.som.annotate.*;
++
+ /**
++ * A class of worms for the game 'Worms'.
+  * 
+- * @author Victor Le Pochat and Emil Loevbak
+- *
++ * @author Victor Le Pochat
++ * @author Emil Loevbak
++ * @version 1.0
+  */
+ public class Worm {
+ 
+@@ -46,54 +50,331 @@ public class Worm {
+ 		return null;
+ 	}
+ 
++	/**
++	 * Return the x-coordinate of this worm.
++	 */
++	@Basic @Raw
+ 	public double getX() {
+-		// TODO Auto-generated method stub
+-		return 0;
++		return this.x;
+ 	}
+-
++	
++	/**
++	 * Check whether the given x-coordinate is a valid x-coordinate for any worm.
++	 * 
++	 * @param	x
++	 * 			The x-coordinate to check.
++	 * @return	True if and only if the given x-coordinate is a number.
++	 * 			| result == ! Double.isNaN(x)
++	 */
++	public static boolean isValidX (double x) {
++		return (! Double.isNaN(x));
++	}
++	
++	/**
++	 * Set the x-coordinate for this worm to the given x-coordinate.
++	 * 
++	 * @param	x
++	 * 			The new x-coordinate for this worm.
++	 * @post	The new x-coordinate for this worm is equal
++	 * 			to the given x-coordinate.
++	 * 			| new.getX() == x
++	 * @throws	IllegalArgumentException
++	 * 			The given x-coordinate is not a valid x-coordinate for any worm.
++	 * 			| ! isValidX(x)
++	 */
++	public void setX(double x) throws IllegalArgumentException {
++		if (! isValidX(x))
++			throw new IllegalArgumentException();
++		this.x = x;
++	}
++	
++	/**
++	 * Variable registering the x-coordinate of this worm.
++	 */
++	 // TODO "... in metres" ?
++	private double x;
++	
++	/**
++	 * Return the y-coordinate of this worm.
++	 */
++	@Basic @Raw
+ 	public double getY() {
+-		// TODO Auto-generated method stub
+-		return 0;
++		return this.y;
+ 	}
++	
++	/**
++	 * Check whether the given y-coordinate is a valid y-coordinate for any worm.
++	 * 
++	 * @param	y
++	 * 			The y-coordinate to check.
++	 * @return	True if and only if the given y-coordinate is a number.
++	 * 			| result == ! Double.isNaN(y)
++	 */
++	public static boolean isValidY (double y) {
++		return (! Double.isNaN(y));
++	}
++	
++	/**
++	 * Set the y-coordinate for this worm to the given y-coordinate.
++	 * @param	y
++	 * 			The new y-coordinate for this worm.
++	 * @post	The new y-coordinate for this worm is equal
++	 * 			to the given y-coordinate.
++	 * 			| new.getY() == y
++	 * @throws	IllegalArgumentException
++	 * 			The given y-coordinate is not a valid y-coordinate for any worm.
++	 * 			| ! isValidY(y)
++	 */
++	public void setY (double y) throws IllegalArgumentException {
++		if (! isValidY(y))
++			throw new IllegalArgumentException();
++		this.y = y;
++	}
++	
++	/**
++	 * Variable registering the y-coordinate of this worm.
++	 */
++	 // TODO "... in metres" ?
++	private double y;
+ 
++	/**
++	 * Return the orientation of this worm.
++	 */
++	@Basic @Raw
++	public double getOrientation() {
++		return this.orientation;
++	}
++	
++	/**
++	 * Check whether the given orientation is a valid orientation for any worm.
++	 * @param	orientation
++	 * 			The orientation to check.
++	 * @return	True if and only if the given orientation is between -2*Pi and 2*Pi.
++	 * 			| result == orientation >= -2.0*Math.PI &&
++	 * 			|	orientation <= 2.0*Math.PI
++	 */
++	public static boolean isValidOrientation(double orientation) {
++		return orientation >= -2.0*Math.PI && orientation <= 2.0*Math.PI;
++	}
++	
++	/**
++	 * Set the orientation of this worm to the given orientation.
++	 * 
++	 * @param	orientation
++	 * 			The new orientation for this worm.
++	 * @pre		The given orientation must be a valid orientation for any worm.
++	 * 			| isValidOrientation(orientation);
++	 * @post	The new orientation of this worm is equal to the 
++	 * 			given orientation.
++	 * 			| new.getOrientation() == orientation
++	 */
++	public void setOrientation(double orientation) {
++		// TODO correct precondition?
++		assert isValidOrientation(orientation); 
++		// assert might not be necessary see p. 163
++		this.orientation = orientation;
++	}
++	
++	/**
++	 * Variable registering the orientation of this worm.
++	 */
++	private double orientation;
++	
++	/**
++	 * Return the radius of this worm.
++	 */
++	@Basic @Raw
+ 	public double getRadius() {
+-		// TODO Auto-generated method stub
+-		return 0;
++		return this.radius;
+ 	}
+ 
+-	public void setRadius(double newRadius) {
+-		// TODO Auto-generated method stub
+-		
++	/**
++	 * Check whether the given radius is a valid radius for this worm.
++	 * 
++	 * @param	radius
++	 * 			The radius to check.
++	 * @return	True if and only if the given radius is bigger than the
++	 * 			minimal radius.
++	 * 			| result == (radius >= getMinimalRadius());
++	 */
++	private boolean canHaveAsRadius(double radius) {
++		// TODO maybe change first sentence of documentation
++		// (do not include 'valid' as this is an instance checker?)
++		return radius >= getMinimalRadius();
++		// ? return radius >= MIN_RADIUS && radius <= MAX_RADIUS
++		// ? MAX_RADIUS = MAX_VALUE?
++	}
++	
++	/**
++	 * Set the radius of this worm to the given radius.
++	 * 
++	 * @param	radius
++	 * 			The new radius for this worm.
++	 * @post	The new radius of this worm is equal to the given radius.
++	 * 			| new.getRadius() == radius
++	 * @throws	IllegalArgumentException
++	 * 			The given radius is not a valid radius for this worm.
++	 */
++	public void setRadius(double radius) throws IllegalArgumentException {
++		// TODO this or any? -> canHaveAs or isValid
++		if (! canHaveAsRadius(radius))
++			throw new IllegalArgumentException();
++		this.radius = radius;
+ 	}
++	
++	/**
++	 * Variable registering the radius of this worm.
++	 */
++	private double radius;
+ 
+-	public double getMinimalRadius() {
+-		// TODO May not be needed.
+-		return 0;
++	/**
++	 * Return the minimal radius of a worm.
++	 */
++	@Basic @Immutable
++	public static double getMinimalRadius() {
++		// TODO is it ok to just return the double? no constants?
++		return 0.25;
+ 	}
+ 
++	/**
++	 * Return the number of action points of this worm.
++	 */
++	@Basic @Raw
+ 	public int getActionPoints() {
+-		// TODO Auto-generated method stub
+-		return 0;
++		return this.actionPoints;
++	}
++	
++	/**
++	 * Set the number of action points of this worm to the given number of action points.
++	 * 
++	 * @param	actionPoints
++	 * 			The new number of action points for this worm.
++	 * @post	If the given number of action points are between zero and
++	 * 			the maximum number of action points for this worm,
++	 * 			the new number of action points of this worm is equal to
++	 * 			the given number of action points.
++	 * 			| if (actionPoints >= 0 && actionPoints <= getMaxActionPoints())
++	 * 			| 	new.getActionPoints() == actionPoints
++	 * @post	If the given number of action points is below zero,
++	 * 			the new number of action points is zero.
++	 * 			| if (actionPoints < 0)
++	 * 			|	new.getActionPoints() == 0
++	 * @post	If the given number of action points is above the maximum
++	 * 			number of action points for this worm, the new number of
++	 * 			action points is the maximum number of action points for
++	 * 			this worm.
++	 * 			| if (actionPoints > getMaxActionPoints())
++	 * 			| 	new.getActionPoints() == getMaxActionPoints()
++	 */
++	public void setActionPoints(int actionPoints) {
++		// TODO remarks on implementation: see notes
++		if (actionPoints < 0)
++			this.actionPoints = 0;
++		if (actionPoints >= 0 && actionPoints <= getMaxActionPoints())
++			this.actionPoints = actionPoints;
++		if (actionPoints > getMaxActionPoints())
++			this.actionPoints = getMaxActionPoints();
+ 	}
++	
++	/**
++	 * Variable registering the number of action points of this worm.
++	 */
++	private int actionPoints;
+ 
++	/**
++	 * Return the maximum amount of action points of this worm.
++	 * 
++	 * @return	The maximum number of action points of a worm is equal
++	 * 			to the worm's mass, rounded to the nearest integer.
++	 * 			| result == (int) Math.round(getMass())
++	 */
+ 	public int getMaxActionPoints() {
+-		// TODO Auto-generated method stub
+-		return 0;
++		return (int) Math.round(getMass());
+ 	}
+ 
++	/**
++	 * Return the name of this worm.
++	 */
++	@Basic @Raw
+ 	public String getName() {
+-		// TODO Auto-generated method stub
+-		return null;
++		return this.name;
++	}
++	
++//	/**
++//	 * Constant reflecting the minimal length of a name.
++//	 * 	The length of a name is the number of symbols it consists of.
++//	 * @return	A name should have at least 2 symbols.
++//	 * 			| result == 2
++//	 */
++//	public final static int MIN_NAME_LENGTH = 2;
++	
++	/**
++	 * Check whether the given name is a valid name for any worm.
++	 * 
++	 * @param	name
++	 * 			The name to check.
++	 * @return	False if the given name is not effective.
++	 * 			| if (name == null)
++	 * 			|	then result == false
++//	 * 			Otherwise, false if the given name is not long enough.
++//	 * 			| else if (name.length() > MIN_NAME_LENGTH)
++//	 * 			|   then result == false
++	 * 			Otherwise, true if the given name begins with
++	 * 			exactly one uppercase letter followed by at least one
++	 * 			letter (both uppercase and lowercase),
++	 * 			quote (both single and double) and/or space.
++	 * 			| else if (name.matches("^[A-Z][A-Za-z \'\"]+")
++	 * 			|	result == true
++	 */
++	public static boolean isValidName(String name) {
++		if (name == null)
++			return false;
++//		if (name.length() > MIN_NAME_LENGTH)
++//			return false;
++//		TODO not necessary? format of matches below requires two characters
++		return name.matches("^[A-Z][A-Za-z \'\"]+");
+ 	}
+ 
+-	public void rename(String newName) {
+-		// TODO maybe setName?
+-		
++	/**
++	 * Set the name of this worm to the given name.
++	 * 
++	 * @param	name
++	 * 			The new name for this worm.
++	 * @post	The new name of worm is equal to the given name.
++	 * 			| new.getName() == name
++	 * @throws	IllegalArgumentException
++	 * 			The given name is not a valid name for any worm.
++	 * 			| ! isValidName (name)
++	 */
++	public void setName(String name) throws IllegalArgumentException {
++		// TODO rename / setName?
++		if (! isValidName(name))
++			throw new IllegalArgumentException();
++		this.name = name;
+ 	}
++	
++	/**
++	 * Variable registering the name of this worm.
++	 */
++	private String name;
+ 
++	/**
++	 * Constant reflecting the homogeneous density of a worm.
++	 * 
++	 * @return	The homogeneous density of a worm is 1062 kg/m³.
++	 * 			| result == 1062
++	 */
++	public static final int DENSITY = 1062;
++
++	/**
++	 * Return the mass of this worm.
++	 * 
++	 * @return	The mass of this worm, assuming that the worm has a spherical body
++	 * 			and a homogeneous density.
++	 * 			| DENSITY*(4.0/3.0)*Math.PI*Math.pow(getRadius(),3)
++	 */
+ 	public double getMass() {
+-		// TODO Auto-generated method stub
+-		return 0;
++		return DENSITY*(4.0/3.0)*Math.PI*Math.pow(getRadius(),3);
+ 	}
+ 
+ }
+-- 
+1.8.4.2
+
