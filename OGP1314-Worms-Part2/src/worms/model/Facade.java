@@ -48,12 +48,12 @@ public class Facade implements IFacade {
 
 	public World createWorld(double width, double height,
 			boolean[][] passableMap, Random random) {
-		try {World newWorld = new World(width,height,passableMap,random);
-	      return newWorld;}
-	      catch(IllegalArgumentException illegalargument) {
-				throw new ModelException(illegalargument);
+	 World newWorld = new World(width,height,passableMap,random);
+	      return newWorld;
+	     // catch(IllegalArgumentException illegalargument) {
+			//	throw new ModelException(illegalargument);
 			}
-	}
+	
 
 	public Worm createWorm(World world, double x, double y, double direction,
 			double radius, String name) throws IllegalArgumentException {
