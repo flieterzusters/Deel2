@@ -33,16 +33,15 @@ private Worm worm;
  * 	/!isValidSize(newWidth) // !isValidSize(newHeight)
  */
 public World(double width, double height,boolean[][] passableMap, Random random) throws IllegalArgumentException  {//zoals in interface	
-	CollectionWorms= new ArrayList<Worm>();
-	foods = new ArrayList<Food>();
-	projectiles = new ArrayList<Projectile>();
-	team= new ArrayList<Team>();	
-	
 	this.setWidth(width);
 	this.setHeight(height);
 	this.setPassableMap(passableMap);
 	this.random = random ;
 
+	CollectionWorms= new ArrayList<Worm>();
+	foods = new ArrayList<Food>();
+	projectiles = new ArrayList<Projectile>();
+	team= new ArrayList<Team>();	
 }	
 
 
@@ -175,10 +174,9 @@ private void setGameStarted()throws IllegalStateException{
  * @effect the width of the game world is set to the provided width.
  * 	/width = newWidth
  */
-private void setWidth(double newWidth) {
-	if(!isValidSize(newWidth)) throw new IllegalArgumentException("no valid width");
-	else 
-	{width = newWidth;}
+private void setWidth(double newWidth) throws IllegalArgumentException {
+	if(!isValidSize(newWidth)) {throw new IllegalArgumentException("no valid width");} // catch aan te vullen in facade
+	else {width = newWidth;}
 	}
 /**
  * getter for the width of the gameworld.
@@ -511,7 +509,7 @@ public boolean inRange(double i_X, double j_Y, double radius)
 /**
  * a list of all the food objects.
  */
-List<Food>foods= new ArrayList<Food>();
+ArrayList<Food>foods= new ArrayList<Food>();
 /**
  * add new food to the world on a random location
  * @throws IllegalArgumentException if the random position is not a valid position to place the object
@@ -538,7 +536,7 @@ public void createFood(Vector location) {
 	addAsFood(food);
 	
 }
-public List<Food> getFoods(){
+public ArrayList<Food> getFoods(){
 	return foods;
 }
 /**
