@@ -195,8 +195,8 @@ public World getWorld() {
  * Check whether this given world is valid for this game object when setting the world to a game object.
  * @param  world
  * 			the given world for this game object.
- * @post false if the world is finished or world is null value.
-
+ * @return false if the world is finished or world is null value.
+ * 
  */		
 public boolean isValidWorld(World world){ //p3: each game object one world, not twice-- nog toevoegen hasProperWorld()...
 	if (world == null)  {return false;} 
@@ -215,19 +215,20 @@ public boolean isTerminated(){
 
 
 
+
+
 /**
- * This object will be removed from the world.
+ * This game object will be removed from the world.
+ * @post this game object is removed from the world. 
+ * @post the state of the game object is set to TERMINATED.
+ * @throws NullPointerException
+ *        illegal world if the world is a null value.
  */
-protected void terminate(){
+protected void terminate() throws NullPointerException {
 	if(getWorld() == null) {throw new NullPointerException();}
 	getWorld().removeObject(this);
 	this.setState(State.TERMINATED);
 }
-
-
-
-
-
 
 
 
