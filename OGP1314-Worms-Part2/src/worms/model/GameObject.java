@@ -136,7 +136,7 @@ public void setRadius(double givenradius) throws IllegalArgumentException {
 	else throw new IllegalArgumentException("Illegal value for the radius");
 }
 /**
- * checks if the radius of the worm is a valid radius
+ * checks if the radius of game object is a valid radius.
  * @param radius the radius witch need to be checked if it is valid or not.
  * @return True if the radius is bigger than the minimal radius or 
  * 			false if the radius is lower than the minimal radius a worm should need to have.
@@ -159,8 +159,8 @@ public static double getMinRadiusWorm() {
 
 
 /**
- * the radius of the worm
- * @return the radius of this worm
+ * returns the radius of the worm.
+ * @return the radius of this worm.
  */
 @Basic
 public double getRadius() {
@@ -172,9 +172,12 @@ public double getRadius() {
 /**
  * Sets this game object in a world.
  * @param world 
+ * 		 the new world for this game object.
+ * @post new world of game object is equal to the value of the parameter.
+ * 		  /new.getWorld() == world.
  */
 public void setWorld(World world) {
-	if (this.validWorld(world))
+	if (this.isValidWorld(world))
 	{this.world = world;}
 }
 
@@ -189,12 +192,15 @@ public World getWorld() {
 	
 	
 /**
- * Check whether this given world is valid for this game object.
+ * Check whether this given world is valid for this game object when setting the world to a game object.
  * @param  world
- */
-public boolean validWorld(World world){ //p3: each game object one world, not twice
-	if (this.isTerminated() || (world == null) ) {return false;} 
-	else {return true;} //nog niet volledig 
+ * 			the given world for this game object.
+ * @post false if the world is finished or world is null value.
+
+ */		
+public boolean isValidWorld(World world){ //p3: each game object one world, not twice-- nog toevoegen hasProperWorld()...
+	if (world == null)  {return false;} 
+	else {return true;} 
 	}
 
 
