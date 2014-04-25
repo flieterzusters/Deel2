@@ -4,6 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import worms.util.Util;
+/**
+ * A class projectile, wich is a specific type of game object.
+ * @author Pieter Kusters
+ * @author Thibaut Bender
+ * @version 1.0
+ * 
+ */
 
 public class Projectile extends GameObject {
 
@@ -19,43 +26,8 @@ public static final double Gravity = 9.80665;
 
 
 
-/**
-//KLOPT NIET
-public Projectile(Worm worm, Vector position, double angle, double) throws IllegalArgumentException{
-	this.worm = worm;
-	this.newX = worm.getPosition().getPositionX() + (Math.cos(worm.getOrientation()) * worm.getRadius()); 
-	this.newY = worm.getPosition().getPositionY() + (Math.sin(worm.getOrientation()) * worm.getRadius());
-	
-	if (!Worm.getPosition().validX(newX) || !Worm.getPosition().validY(newY))
-			throw new IllegalArgumentException();
-		
-	}
-	
-	
-public Projectile(World world, Position position, double angle, double forceTime, double propulsionYield)
-	
-}
-	// wat ik dacht maar klopt ook niet
-//waar is getPositionX en getPositionY naartoe in klasse Worm
-public Projectile(Worm worm, double radius  ){
-	super((worm.getPosition().getPositionX()+1.1*worm.getRadius()),(worm.getPosition().getPositionY()+1.1*worm.getRadius()), radius, worm.getOrientation());
-	
-}
-
-
-// krijg hier een fout er zou moeten staan van Porjectile(World world, double x, double y) maar dan lukt het mij niet om de radius van de womr op te halen
-public Projectile(Worm worm) throws IllegalArgumentException {
-	if (world.ValidCoordinateX(x+ Math.cos(worm.getOrientation()*worm.getRadius())
-	) && world.ValidCoordinateY(y+ Math.sin(worm.getOrientation()*worm.getRadius()))){
-	this.setPosProjectileX(this.getPosition().getPositionX());
-	this.setPosProjectileY(this.getPosition().getPositionY());}
-	else throw new IllegalArgumentException("no valid Y coordinate for projectile");
-	this.setWorld(world);
-	}	
-*/
-
-public Projectile(World world, double x, double y){
-	super(world,x,y,0);
+public Projectile(World world, Vector position){
+	super( position,getRadius());
 	this.setRadius(getRadius());
 }
 public Worm getWorm(){
