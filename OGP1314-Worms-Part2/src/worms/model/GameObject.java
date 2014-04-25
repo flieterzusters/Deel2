@@ -1,7 +1,13 @@
 package worms.model;
 
 import be.kuleuven.cs.som.annotate.Basic;
-
+/**
+ * A class of  game objects: worms, projectiles, food.
+ * @author Pieter Kusters
+ * @author Thibaut Bender
+ * @version 1.0
+ * 
+ */
 
 
 
@@ -31,7 +37,9 @@ protected static enum State{
 */
 protected State state = State.ACTIVE;		
 	
-	
+/**
+ * The current position of the space object in the world.
+ */		
 private Vector Position;	
 
 /**
@@ -49,20 +57,33 @@ private double radius;
  */
 protected World world;
 
-	
+/**
+ * Creates a game object with the initialization parameters position and radius. 
+ * 
+ * @param position
+ * 		  The initial position of game object in the world.
+ * @param radius
+ * 		  The initial radius of the game object
+ * 
+ * @effect The position of the game object is set the value given.
+ * 		 /new.getPosition() == position
+ * @effect The radius of the game object is set the value given.
+ * 		 |new.getRadius() == radius
+ */		
 public GameObject (Vector position, double radius) {
 		this.setPosition(position);
 		this.setRadius(radius);
 }
 
 
-public GameObject(World world2, double x, double y, int i) {
-	// TODO Auto-generated constructor stub
-}
-
 
 /**
  * Sets the state of this game object.
+ * @param state
+ *        the new state of the game object.
+ * @post the new state of game object is equal to the right value (ACTIVE or TERMINATED) of the enumeration type.
+ * 		/new.getState == State.state
+ * 
  */
 protected void setState(State state)
 {
@@ -70,26 +91,40 @@ protected void setState(State state)
 	this.state = state;
 }
 
-
+/**
+ * returns the state of this game object.
+ * @return the state of the game object.
+ * 
+ */
 protected State getState()
 {
 	return this.state;
 }
 
-
+/**
+ * Sets the new position in the world of this game object.
+ * @param newPosition
+ *        The new position of this game object.
+ * @post the new position of game object is equal to the value of the parameter.
+ * 		/new.getPosition() == position
+ */
 public void setPosition(Vector newPosition) {
 	this.Position = newPosition;
 }
 
-
+/**
+ * returns the position in the world of this game object.
+ * @return the radius of this game object.
+ */
 public Vector getPosition() {	
 	return this.Position;
 }
 
 /**
- * gives the worm the radius given by the parameter
- * @param givenradius the new radius of this worm
- * @post the new radius of the worm is equal to the value of the parameter
+ * set the radius of the game object to the given radius.
+ * @param givenradius
+ * 		  the new radius of this game object.
+ * @post the new radius of game object is equal to the value of the parameter
  * 		/new.getRadius() == radius
  * @throws IllegalArgumentException
  * 				the given radius is not valid
